@@ -1,0 +1,37 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="avGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f2dfa8"/>
+      <stop offset="45%" stop-color="#c9a961"/>
+      <stop offset="100%" stop-color="#7a6434"/>
+    </linearGradient>
+    <linearGradient id="avGoldSoft" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e5c88c"/>
+      <stop offset="100%" stop-color="#8f7642"/>
+    </linearGradient>
+    <radialGradient id="avDial" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#1a1a1e"/>
+      <stop offset="100%" stop-color="#0a0a0b"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="60" cy="60" r="56" fill="none" stroke="url(#avGold)" stroke-width="2.5"/>
+  <circle cx="60" cy="60" r="49" fill="url(#avDial)" stroke="url(#avGoldSoft)" stroke-width="1"/>
+
+  <!-- minute ticks -->
+  <g stroke="url(#avGold)" stroke-width="1.4" opacity="0.85">
+    <line x1="60" y1="14" x2="60" y2="20"/>
+    <line x1="60" y1="100" x2="60" y2="106"/>
+    <line x1="14" y1="60" x2="20" y2="60"/>
+    <line x1="100" y1="60" x2="106" y2="60"/>
+  </g>
+
+  <!-- Monogram A built from watch hands -->
+  <g stroke="url(#avGold)" stroke-width="4.2" stroke-linecap="round" fill="none">
+    <path d="M60 34 L40 86"/>
+    <path d="M60 34 L80 86"/>
+    <path d="M47.5 68 L72.5 68"/>
+  </g>
+
+  <circle cx="60" cy="60" r="3.2" fill="url(#avGold)"/>
+</svg>

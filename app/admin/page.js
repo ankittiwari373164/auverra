@@ -1,0 +1,632 @@
+'use client'
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Navbar } from '@/components/navbar'
+import { useApp } from '@/app/providers'
+import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase/client'
+import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Mail, Settings, Bell, Search, Percent, FileText, CreditCard, Truck, Palette, Watch, Star, X, Pencil, Trash2, Plus, Upload, Loader2 } from 'lucide-react'
+
+const GATEWAYS = [
+  { key: 'razorpay', name: 'Razorpay', desc: 'India’s leading payment gateway. Supports UPI, cards, netbanking.', fields: ['Key ID', 'Key Secret', 'Webhook Secret'] },
+  { key: 'stripe', name: 'Stripe', desc: 'International cards, wallets, and 135+ currencies.', fields: ['Publishable Key', 'Secret Key', 'Webhook Signing Secret'] },
+  { key: 'paypal', name: 'PayPal', desc: 'Global PayPal & PayPal Credit.', fields: ['Client ID', 'Client Secret'] },
+  { key: 'cod', name: 'Cash on Delivery', desc: 'Accept cash upon delivery. India only.', fields: [] },
+  { key: 'bank', name: 'Bank Transfer', desc: 'Direct NEFT / RTGS / IMPS.', fields: ['Bank Name', 'Account Number', 'IFSC'] },
+]
+const ORDER_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="glass-dark border border-gold/20 rounded-sm w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-gold/10 sticky top-0 bg-obsidian-900/95">
+          <h3 className="font-serif text-xl text-gold">{title}</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-platinum-light/60 hover:text-gold" /></button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+const inputCls = "w-full bg-obsidian-700 border border-gold/20 px-3 py-2 text-sm outline-none focus:border-gold text-platinum-light"
+const labelCls = "text-xs uppercase tracking-widest text-gold mb-1 block"
+
+export default function AdminPage() {
+  const { user, loading, setUser } = useApp() || {}
+  const [stats, setStats] = useState(null)
+  const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
+  const [coupons, setCoupons] = useState([])
+  const [posts, setPosts] = useState([])
+  const [gateways, setGateways] = useState({})
+  const [tab, setTab] = useState('dashboard')
+  const [productModal, setProductModal] = useState(null) // null | {} | product
+  const [couponModal, setCouponModal] = useState(null)
+  const [postModal, setPostModal] = useState(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && (!user || user.role !== 'admin')) {
+      if (!user) router.push('/login?redirect=/admin')
+      else router.push('/')
+    }
+  }, [user, loading])
+
+  const refreshAll = () => {
+    fetch('/api/admin/stats').then(r => r.json()).then(setStats)
+    fetch('/api/admin/products').then(r => r.json()).then(d => setProducts(d.items || []))
+    fetch('/api/admin/orders').then(r => r.json()).then(d => setOrders(d.items || []))
+    fetch('/api/admin/coupons').then(r => r.json()).then(d => setCoupons(d.items || []))
+    fetch('/api/admin/blog').then(r => r.json()).then(d => setPosts(d.items || []))
+    fetch('/api/admin/payments').then(r => r.json()).then(d => setGateways(d.gateways || {}))
+  }
+
+  useEffect(() => { if (user?.role === 'admin') refreshAll() }, [user])
+
+  if (loading || !user || user.role !== 'admin') return <div className="min-h-screen bg-obsidian flex items-center justify-center"><div className="text-gold">Verifying access...</div></div>
+
+  const nav = [
+    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { key: 'products', label: 'Products', icon: Watch },
+    { key: 'orders', label: 'Orders', icon: ShoppingCart },
+    { key: 'coupons', label: 'Coupons', icon: Percent },
+    { key: 'blog', label: 'Blog', icon: FileText },
+    { key: 'payments', label: 'Payments', icon: CreditCard },
+    { key: 'newsletter', label: 'Newsletter', icon: Mail },
+    { key: 'settings', label: 'Settings', icon: Settings },
+  ]
+
+  // ---- Product CRUD ----
+  const saveProduct = async (form) => {
+    const isEdit = !!form.__editSlug
+    const payload = { ...form }
+    delete payload.__editSlug
+    payload.price = Number(payload.price); payload.stock = Number(payload.stock)
+    const res = await fetch(isEdit ? `/api/admin/products/${form.__editSlug}` : '/api/admin/products', {
+      method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    })
+    const data = await res.json()
+    if (res.ok) { toast.success(isEdit ? 'Product updated' : 'Product created'); setProductModal(null); refreshAll() }
+    else toast.error(data.error || 'Failed')
+  }
+  const deleteProduct = async (slug) => {
+    if (!confirm(`Delete product "${slug}"?`)) return
+    const res = await fetch(`/api/admin/products/${slug}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('Product deleted'); refreshAll() } else toast.error('Failed to delete')
+  }
+
+  // ---- Order status ----
+  const updateOrderStatus = async (orderId, status) => {
+    const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
+    if (res.ok) { toast.success('Order status updated'); refreshAll() } else toast.error('Failed to update')
+  }
+
+  // ---- Coupon CRUD ----
+  const saveCoupon = async (form) => {
+    const res = await fetch('/api/admin/coupons', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
+    const data = await res.json()
+    if (res.ok) { toast.success('Coupon created'); setCouponModal(null); refreshAll() } else toast.error(data.error || 'Failed')
+  }
+  const deleteCoupon = async (id) => {
+    if (!confirm('Delete this coupon?')) return
+    const res = await fetch(`/api/admin/coupons/${id}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('Coupon deleted'); refreshAll() } else toast.error('Failed')
+  }
+  const toggleCoupon = async (c) => {
+    const res = await fetch(`/api/admin/coupons/${c._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !c.active }) })
+    if (res.ok) refreshAll()
+  }
+
+  // ---- Blog CRUD ----
+  const savePost = async (form) => {
+    const isEdit = !!form.__editId
+    const id = form.__editId
+    const payload = { ...form }; delete payload.__editId
+    const res = await fetch(isEdit ? `/api/admin/blog/${id}` : '/api/admin/blog', { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    const data = await res.json()
+    if (res.ok) { toast.success(isEdit ? 'Post updated' : 'Post created'); setPostModal(null); refreshAll() } else toast.error(data.error || 'Failed')
+  }
+  const deletePost = async (id) => {
+    if (!confirm('Delete this post?')) return
+    const res = await fetch(`/api/admin/blog/${id}`, { method: 'DELETE' })
+    if (res.ok) { toast.success('Post deleted'); refreshAll() } else toast.error('Failed')
+  }
+
+  // ---- Payments ----
+  const savePayment = async (gatewayKey, form) => {
+    const res = await fetch('/api/admin/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ gateway: gatewayKey, ...form }) })
+    if (res.ok) { toast.success('Payment settings saved'); refreshAll() } else toast.error('Failed to save')
+  }
+
+  return (
+    <div className="min-h-screen bg-obsidian text-platinum-light flex">
+      <aside className="w-64 bg-obsidian-900 border-r border-gold/10 min-h-screen flex-shrink-0 hidden lg:block">
+        <div className="p-6 border-b border-gold/10 flex items-center gap-3">
+          <img src="/logo.svg" alt="Auverra" className="w-8 h-8" />
+          <div>
+            <Link href="/" className="text-lg font-serif font-bold tracking-[0.15em] text-gradient-gold">AUVERRA</Link>
+            <div className="text-[9px] uppercase tracking-[0.3em] text-platinum-light/40">Admin Panel</div>
+          </div>
+        </div>
+        <nav className="p-3">
+          {nav.map(item => (
+            <button key={item.key} onClick={() => setTab(item.key)} className={`w-full flex items-center gap-3 px-4 py-3 mb-1 text-sm transition rounded-sm ${tab === item.key ? 'bg-gold/10 text-gold border-l-2 border-gold' : 'text-platinum-light/70 hover:bg-obsidian-700 hover:text-platinum-light'}`}>
+              <item.icon className="w-4 h-4" />{item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="flex-1 min-w-0">
+        <header className="border-b border-gold/10 bg-obsidian-900/50 backdrop-blur px-8 py-5 flex items-center justify-between sticky top-0 z-40">
+          <div>
+            <h1 className="text-2xl font-serif text-gradient-gold capitalize">{tab}</h1>
+            <div className="text-xs text-platinum-light/50 mt-1">Welcome back, {user.name}</div>
+          </div>
+          <Link href="/" className="text-xs uppercase tracking-widest text-gold hover:underline">View Store</Link>
+        </header>
+
+        <main className="p-8">
+          {tab === 'dashboard' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {[
+                  { label: 'Total Revenue', value: `₹${((stats?.totalRevenue || 0) / 100000).toFixed(1)}L`, icon: DollarSign },
+                  { label: 'Total Orders', value: stats?.orderCount || 0, icon: ShoppingCart },
+                  { label: 'Products', value: stats?.productCount || 0, icon: Package },
+                  { label: 'Subscribers', value: stats?.newsletterCount || 0, icon: Mail },
+                ].map((s, i) => (
+                  <div key={i} className="glass border border-gold/10 p-6 rounded-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.2em] text-platinum-light/50 mb-2">{s.label}</div>
+                        <div className="text-3xl font-serif text-gradient-gold">{s.value}</div>
+                      </div>
+                      <s.icon className="w-10 h-10 text-gold/40" strokeWidth={1} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="glass border border-gold/10 p-6 rounded-sm">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-serif text-lg text-gold">Recent Orders</h3>
+                    <button onClick={() => setTab('orders')} className="text-xs text-gold hover:underline">View All</button>
+                  </div>
+                  {stats?.recentOrders?.length ? (
+                    <div className="space-y-3">
+                      {stats.recentOrders.map(o => (
+                        <div key={o.orderId} className="flex justify-between py-3 border-b border-gold/5 last:border-0">
+                          <div><div className="text-sm text-platinum-light">{o.orderId}</div><div className="text-xs text-platinum-light/50">{o.email}</div></div>
+                          <div className="text-right"><div className="text-sm text-gold">₹{o.total?.toLocaleString('en-IN')}</div><div className="text-[10px] uppercase tracking-widest text-platinum-light/50">{o.status}</div></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="text-sm text-platinum-light/50">No orders yet</div>}
+                </div>
+
+                <div className="glass border border-gold/10 p-6 rounded-sm">
+                  <h3 className="font-serif text-lg text-gold mb-6">Top Products</h3>
+                  <div className="space-y-3">
+                    {products.slice(0, 5).map(p => (
+                      <div key={p.slug} className="flex items-center gap-3 py-2">
+                        <img src={p.images[0] + '?auto=format&fit=crop&w=100&q=80'} className="w-12 h-12 object-cover" />
+                        <div className="flex-1 min-w-0"><div className="text-sm font-serif truncate">{p.name}</div><div className="text-xs text-platinum-light/50">Stock: {p.stock} • ★ {p.rating}</div></div>
+                        <div className="text-sm text-gold">₹{(p.price / 1000).toFixed(0)}K</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass border border-gold/10 p-6 rounded-sm">
+                <h3 className="font-serif text-lg text-gold mb-6">Quick Actions</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Add Product', icon: Package, action: () => { setTab('products'); setProductModal({}) } },
+                    { label: 'Configure Payment', icon: CreditCard, action: () => setTab('payments') },
+                    { label: 'Create Coupon', icon: Percent, action: () => { setTab('coupons'); setCouponModal({}) } },
+                    { label: 'Write Blog', icon: FileText, action: () => { setTab('blog'); setPostModal({}) } },
+                  ].map((a, i) => (
+                    <button key={i} onClick={a.action} className="p-4 border border-gold/20 hover:bg-gold/5 hover:border-gold/50 transition text-center">
+                      <a.icon className="w-6 h-6 text-gold mx-auto mb-2" strokeWidth={1} />
+                      <div className="text-xs uppercase tracking-widest">{a.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'products' && (
+            <div className="glass border border-gold/10 rounded-sm overflow-hidden">
+              <div className="p-6 flex justify-between items-center border-b border-gold/10">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-platinum-light/40" />
+                  <input placeholder="Search products..." className="w-full bg-obsidian-700 border border-gold/10 pl-10 pr-4 py-2 text-sm outline-none focus:border-gold" />
+                </div>
+                <button onClick={() => setProductModal({})} className="btn-gold text-xs inline-flex items-center gap-2"><Plus className="w-3 h-3" /> Add Product</button>
+              </div>
+              <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gold/10 text-xs uppercase tracking-widest text-platinum-light/50">
+                    <th className="text-left p-4">Product</th>
+                    <th className="text-left p-4 hidden md:table-cell">Category</th>
+                    <th className="text-left p-4">Price</th>
+                    <th className="text-left p-4">Stock</th>
+                    <th className="text-left p-4 hidden md:table-cell">Rating</th>
+                    <th className="text-right p-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map(p => (
+                    <tr key={p.slug} className="border-b border-gold/5 hover:bg-obsidian-700/30">
+                      <td className="p-4"><div className="flex items-center gap-3"><img src={p.images[0] + '?auto=format&fit=crop&w=100&q=80'} className="w-12 h-12 object-cover" /><div className="font-serif">{p.name}</div></div></td>
+                      <td className="p-4 hidden md:table-cell text-sm text-platinum-light/70 capitalize">{p.category}</td>
+                      <td className="p-4 text-sm text-gold">₹{p.price.toLocaleString('en-IN')}</td>
+                      <td className="p-4 text-sm"><span className={p.stock < 5 ? 'text-rosegold' : 'text-green-400'}>{p.stock}</span></td>
+                      <td className="p-4 hidden md:table-cell text-sm">★ {p.rating}</td>
+                      <td className="p-4 text-right">
+                        <button onClick={() => setProductModal({ ...p, __editSlug: p.slug })} className="p-2 hover:text-gold"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => deleteProduct(p.slug)} className="p-2 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              </div>
+            </div>
+          )}
+
+          {tab === 'orders' && (
+            <div className="glass border border-gold/10 rounded-sm overflow-hidden">
+              <div className="p-6 border-b border-gold/10"><h3 className="font-serif text-lg text-gold">All Orders ({orders.length})</h3></div>
+              {orders.length === 0 ? <div className="p-8 text-center text-platinum-light/50">No orders yet</div> : (
+                <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead><tr className="border-b border-gold/10 text-xs uppercase tracking-widest text-platinum-light/50"><th className="text-left p-4">Order ID</th><th className="text-left p-4">Customer</th><th className="text-left p-4">Date</th><th className="text-left p-4">Total</th><th className="text-left p-4">Status</th></tr></thead>
+                  <tbody>{orders.map(o => (
+                    <tr key={o.orderId} className="border-b border-gold/5">
+                      <td className="p-4 text-sm text-gold">{o.orderId}</td>
+                      <td className="p-4 text-sm">{o.email}</td>
+                      <td className="p-4 text-sm text-platinum-light/70">{new Date(o.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4 text-sm text-gold">₹{o.total?.toLocaleString('en-IN')}</td>
+                      <td className="p-4">
+                        <select value={o.status} onChange={e => updateOrderStatus(o.orderId, e.target.value)} className="bg-obsidian-700 border border-gold/30 text-gold text-[11px] uppercase tracking-widest px-3 py-1 outline-none">
+                          {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'coupons' && (
+            <div className="glass border border-gold/10 rounded-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-serif text-xl text-gold">Coupons & Discounts</h3>
+                <button onClick={() => setCouponModal({})} className="btn-gold text-xs inline-flex items-center gap-2"><Plus className="w-3 h-3" /> Create Coupon</button>
+              </div>
+              {coupons.length === 0 ? <div className="text-sm text-platinum-light/50 text-center py-8">No coupons yet. Create one to offer discounts.</div> : (
+                <div className="space-y-3">
+                  {coupons.map(c => (
+                    <div key={c._id} className="flex items-center justify-between p-4 border border-gold/10">
+                      <div>
+                        <div className="font-serif text-lg text-gold">{c.code} {!c.active && <span className="text-xs text-platinum-light/40 uppercase ml-2">(disabled)</span>}</div>
+                        <div className="text-xs text-platinum-light/60">{c.type === 'percent' ? `${c.value}% off` : `₹${c.value} off`} • Used {c.usageCount || 0}{c.usageLimit ? ` / ${c.usageLimit}` : ' / ∞'}</div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="text-xs text-platinum-light/50">{c.expiresAt ? `Expires ${new Date(c.expiresAt).toLocaleDateString()}` : 'No expiry'}</div>
+                        <button onClick={() => toggleCoupon(c)} className="text-xs text-gold hover:underline">{c.active ? 'Disable' : 'Enable'}</button>
+                        <button onClick={() => deleteCoupon(c._id)} className="p-1 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'blog' && (
+            <div className="glass border border-gold/10 rounded-sm p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-serif text-xl text-gold">Blog / Journal</h3>
+                <button onClick={() => setPostModal({})} className="btn-gold text-xs inline-flex items-center gap-2"><Plus className="w-3 h-3" /> Write Post</button>
+              </div>
+              {posts.length === 0 ? <div className="text-sm text-platinum-light/50 text-center py-8">No posts yet.</div> : (
+                <div className="space-y-3">
+                  {posts.map(p => (
+                    <div key={p._id} className="flex items-center justify-between p-4 border border-gold/10">
+                      <div className="min-w-0">
+                        <div className="font-serif text-lg text-platinum-light truncate">{p.title} {!p.published && <span className="text-xs text-platinum-light/40 uppercase ml-2">(draft)</span>}</div>
+                        <div className="text-xs text-platinum-light/60 truncate">{p.excerpt}</div>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <button onClick={() => setPostModal({ ...p, __editId: p._id })} className="p-2 hover:text-gold"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => deletePost(p._id)} className="p-2 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'payments' && (
+            <div className="space-y-6">
+              <div className="glass border border-gold/10 p-6 rounded-sm">
+                <h3 className="font-serif text-xl text-gold mb-2">Payment Gateways</h3>
+                <p className="text-sm text-platinum-light/60 mb-6">Configure your payment providers. Settings are saved to the database instantly.</p>
+                <div className="space-y-4">
+                  {GATEWAYS.map(pg => <GatewayRow key={pg.key} pg={pg} saved={gateways[pg.key]} onSave={(form) => savePayment(pg.key, form)} />)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {['newsletter', 'settings'].includes(tab) && (
+            <div className="glass border border-gold/10 p-12 rounded-sm text-center">
+              <h3 className="font-serif text-2xl text-gold mb-4 capitalize">{tab}</h3>
+              <p className="text-platinum-light/60 max-w-md mx-auto">This module is scaffolded and ready. Extend with full CRUD, filtering, and analytics as needed.</p>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {productModal && <ProductModal product={productModal} onClose={() => setProductModal(null)} onSave={saveProduct} />}
+      {couponModal && <CouponModal onClose={() => setCouponModal(null)} onSave={saveCoupon} />}
+      {postModal && <PostModal post={postModal} onClose={() => setPostModal(null)} onSave={savePost} />}
+    </div>
+  )
+}
+
+function GatewayRow({ pg, saved, onSave }) {
+  const [open, setOpen] = useState(false)
+  const [enabled, setEnabled] = useState(saved?.enabled || false)
+  const [mode, setMode] = useState(saved?.mode || 'test')
+  const [fields, setFields] = useState(saved?.fields || {})
+
+  useEffect(() => { setEnabled(saved?.enabled || false); setMode(saved?.mode || 'test'); setFields(saved?.fields || {}) }, [saved])
+
+  return (
+    <details open={open} onToggle={e => setOpen(e.target.open)} className="border border-gold/10 rounded-sm">
+      <summary className="p-4 flex items-center justify-between cursor-pointer hover:bg-obsidian-700/30">
+        <div>
+          <div className="font-serif text-lg flex items-center gap-2">{pg.name} {enabled && <span className="text-[10px] uppercase tracking-widest text-green-400 border border-green-400/30 px-2 py-0.5">Active</span>}</div>
+          <div className="text-xs text-platinum-light/50">{pg.desc}</div>
+        </div>
+        <label className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+          <span className="text-xs text-platinum-light/60">Enable</span>
+          <input type="checkbox" checked={enabled} onChange={e => setEnabled(e.target.checked)} className="accent-gold" />
+        </label>
+      </summary>
+      <div className="p-4 border-t border-gold/10 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {pg.fields.map(f => (
+          <div key={f}>
+            <label className={labelCls}>{f}</label>
+            <input type="password" value={fields[f] || ''} onChange={e => setFields({ ...fields, [f]: e.target.value })} placeholder={`Enter ${f}`} className={inputCls} />
+          </div>
+        ))}
+        {pg.fields.length > 0 && (
+          <div className="flex items-center gap-3 col-span-full">
+            <label className="flex items-center gap-2 text-sm"><input type="radio" name={`mode-${pg.key}`} checked={mode === 'test'} onChange={() => setMode('test')} className="accent-gold" />Test Mode</label>
+            <label className="flex items-center gap-2 text-sm"><input type="radio" name={`mode-${pg.key}`} checked={mode === 'live'} onChange={() => setMode('live')} className="accent-gold" />Live Mode</label>
+          </div>
+        )}
+        <button onClick={() => onSave({ enabled, mode, fields })} className="btn-outline-gold text-xs col-span-full justify-self-start">Save Configuration</button>
+      </div>
+    </details>
+  )
+}
+
+function ProductModal({ product, onClose, onSave }) {
+  const isEdit = !!product.slug
+  const [form, setForm] = useState({
+    slug: product.slug || '', name: product.name || '', tagline: product.tagline || '',
+    price: product.price || '', compareAtPrice: product.compareAtPrice || '', stock: product.stock ?? '',
+    category: product.category || 'chronograph', collection: product.collection || 'heritage',
+    description: product.description || '', images: product.images || [],
+    featured: !!product.featured, bestSeller: !!product.bestSeller, newArrival: !!product.newArrival,
+    features: product.features?.length ? product.features : [''],
+    specs: product.specs && Object.keys(product.specs).length ? Object.entries(product.specs).map(([key, value]) => ({ key, value })) : [{ key: '', value: '' }],
+    colors: product.variants?.dial?.length ? product.variants.dial.map(d => ({ name: d.name, hex: d.hex || '#c9a961' })) : [],
+  })
+  const [uploading, setUploading] = useState(false)
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // ---- image upload ----
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading(true)
+    const supabase = createClient()
+    const uploaded = []
+    for (const file of files) {
+      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.\-]+/g, '-')}`
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: false })
+      if (error) { toast.error(`Failed to upload ${file.name}: ${error.message}`); continue }
+      const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+      uploaded.push(data.publicUrl)
+    }
+    if (uploaded.length) set('images', [...form.images, ...uploaded])
+    setUploading(false)
+    e.target.value = ''
+  }
+  const removeImage = (idx) => set('images', form.images.filter((_, i) => i !== idx))
+
+  // ---- dynamic list helpers ----
+  const updateListItem = (key, idx, value) => set(key, form[key].map((it, i) => i === idx ? value : it))
+  const addListItem = (key, empty) => set(key, [...form[key], empty])
+  const removeListItem = (key, idx) => set(key, form[key].filter((_, i) => i !== idx))
+
+  const submit = (e) => {
+    e.preventDefault()
+    if (!form.images.length) return toast.error('Add at least one product image')
+    const specs = {}
+    form.specs.forEach(({ key, value }) => { if (key.trim()) specs[key.trim()] = value })
+    const payload = {
+      ...form,
+      features: form.features.map(f => f.trim()).filter(Boolean),
+      specs,
+      variants: form.colors.length ? { dial: form.colors.filter(c => c.name.trim()).map(c => ({ name: c.name, hex: c.hex })) } : {},
+      __editSlug: isEdit ? product.slug : undefined,
+    }
+    delete payload.colors
+    onSave(payload)
+  }
+
+  return (
+    <Modal title={isEdit ? `Edit ${product.name}` : 'Add New Product'} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className={labelCls}>Name</label><input required value={form.name} onChange={e => set('name', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Slug</label><input required disabled={isEdit} value={form.slug} onChange={e => set('slug', e.target.value)} className={inputCls + ' disabled:opacity-50'} placeholder="e.g. chronos-titanium" /></div>
+        </div>
+        <div><label className={labelCls}>Tagline</label><input value={form.tagline} onChange={e => set('tagline', e.target.value)} className={inputCls} /></div>
+        <div className="grid grid-cols-3 gap-4">
+          <div><label className={labelCls}>Price (₹)</label><input required type="number" value={form.price} onChange={e => set('price', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Compare-at (₹)</label><input type="number" value={form.compareAtPrice} onChange={e => set('compareAtPrice', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Stock</label><input required type="number" value={form.stock} onChange={e => set('stock', e.target.value)} className={inputCls} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className={labelCls}>Category</label>
+            <select value={form.category} onChange={e => set('category', e.target.value)} className={inputCls}>
+              {['chronograph', 'dress', 'diver', 'tourbillon', 'gmt', 'ladies'].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div><label className={labelCls}>Collection</label>
+            <select value={form.collection} onChange={e => set('collection', e.target.value)} className={inputCls}>
+              {['heritage', 'obsidian', 'celestial'].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div><label className={labelCls}>Description</label><textarea rows={3} value={form.description} onChange={e => set('description', e.target.value)} className={inputCls} /></div>
+
+        {/* Images */}
+        <div>
+          <label className={labelCls}>Product Images</label>
+          <div className="grid grid-cols-4 gap-3 mb-3">
+            {form.images.map((url, i) => (
+              <div key={i} className="relative aspect-square rounded-sm overflow-hidden border border-gold/20 group">
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 w-6 h-6 bg-black/70 text-white flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+            <label className="aspect-square rounded-sm border border-dashed border-gold/30 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-gold/60 hover:bg-gold/5 transition text-platinum-light/50">
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin text-gold" /> : <Upload className="w-5 h-5" />}
+              <span className="text-[10px] uppercase tracking-widest">{uploading ? 'Uploading' : 'Upload'}</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} disabled={uploading} />
+            </label>
+          </div>
+          <p className="text-[11px] text-platinum-light/40">Uploads go to your Supabase Storage bucket and are served from there — no external links needed.</p>
+        </div>
+
+        {/* Colors (dial variants) */}
+        <div>
+          <label className={labelCls}>Colors (Dial Variants)</label>
+          <div className="space-y-2">
+            {form.colors.map((c, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input type="color" value={c.hex} onChange={e => updateListItem('colors', i, { ...c, hex: e.target.value })} className="w-10 h-9 bg-obsidian-700 border border-gold/20 rounded-sm cursor-pointer" />
+                <input value={c.name} onChange={e => updateListItem('colors', i, { ...c, name: e.target.value })} placeholder="Color name, e.g. Obsidian Black" className={inputCls} />
+                <button type="button" onClick={() => removeListItem('colors', i)} className="p-2 text-platinum-light/40 hover:text-red-400 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => addListItem('colors', { name: '', hex: '#c9a961' })} className="mt-2 text-xs text-gold hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add Color</button>
+        </div>
+
+        {/* Specifications */}
+        <div>
+          <label className={labelCls}>Specifications</label>
+          <div className="space-y-2">
+            {form.specs.map((s, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <input value={s.key} onChange={e => updateListItem('specs', i, { ...s, key: e.target.value })} placeholder="e.g. Movement" className={inputCls} />
+                <input value={s.value} onChange={e => updateListItem('specs', i, { ...s, value: e.target.value })} placeholder="e.g. Automatic AV-C7" className={inputCls} />
+                <button type="button" onClick={() => removeListItem('specs', i)} className="p-2 text-platinum-light/40 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => addListItem('specs', { key: '', value: '' })} className="mt-2 text-xs text-gold hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add Specification</button>
+        </div>
+
+        {/* Features */}
+        <div>
+          <label className={labelCls}>Features</label>
+          <div className="space-y-2">
+            {form.features.map((f, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input value={f} onChange={e => updateListItem('features', i, e.target.value)} placeholder="e.g. 72-hour power reserve" className={inputCls} />
+                <button type="button" onClick={() => removeListItem('features', i)} className="p-2 text-platinum-light/40 hover:text-red-400 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => addListItem('features', '')} className="mt-2 text-xs text-gold hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add Feature</button>
+        </div>
+
+        <div className="flex gap-6">
+          {['featured', 'bestSeller', 'newArrival'].map(k => (
+            <label key={k} className="flex items-center gap-2 text-sm capitalize"><input type="checkbox" checked={form[k]} onChange={e => set(k, e.target.checked)} className="accent-gold" />{k}</label>
+          ))}
+        </div>
+        <button disabled={uploading} className="btn-gold w-full disabled:opacity-50">{isEdit ? 'Save Changes' : 'Create Product'}</button>
+      </form>
+    </Modal>
+  )
+}
+
+function CouponModal({ onClose, onSave }) {
+  const [form, setForm] = useState({ code: '', type: 'percent', value: '', minSubtotal: '', usageLimit: '', expiresAt: '' })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const submit = (e) => { e.preventDefault(); onSave(form) }
+  return (
+    <Modal title="Create Coupon" onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <div><label className={labelCls}>Coupon Code</label><input required value={form.code} onChange={e => set('code', e.target.value.toUpperCase())} className={inputCls} placeholder="e.g. WELCOME10" /></div>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className={labelCls}>Discount Type</label>
+            <select value={form.type} onChange={e => set('type', e.target.value)} className={inputCls}>
+              <option value="percent">Percent (%)</option>
+              <option value="flat">Flat (₹)</option>
+            </select>
+          </div>
+          <div><label className={labelCls}>Value</label><input required type="number" value={form.value} onChange={e => set('value', e.target.value)} className={inputCls} /></div>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className={labelCls}>Min. Subtotal (₹, optional)</label><input type="number" value={form.minSubtotal} onChange={e => set('minSubtotal', e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Usage Limit (optional)</label><input type="number" value={form.usageLimit} onChange={e => set('usageLimit', e.target.value)} className={inputCls} /></div>
+        </div>
+        <div><label className={labelCls}>Expiry Date (optional)</label><input type="date" value={form.expiresAt} onChange={e => set('expiresAt', e.target.value)} className={inputCls} /></div>
+        <button className="btn-gold w-full">Create Coupon</button>
+      </form>
+    </Modal>
+  )
+}
+
+function PostModal({ post, onClose, onSave }) {
+  const isEdit = !!post._id
+  const [form, setForm] = useState({ title: post.title || '', excerpt: post.excerpt || '', content: post.content || '', coverImage: post.coverImage || '', published: post.published ?? true })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const submit = (e) => { e.preventDefault(); onSave({ ...form, __editId: isEdit ? post._id : undefined }) }
+  return (
+    <Modal title={isEdit ? 'Edit Post' : 'Write New Post'} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <div><label className={labelCls}>Title</label><input required value={form.title} onChange={e => set('title', e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Cover Image URL</label><input value={form.coverImage} onChange={e => set('coverImage', e.target.value)} className={inputCls} placeholder="https://..." /></div>
+        <div><label className={labelCls}>Excerpt</label><input value={form.excerpt} onChange={e => set('excerpt', e.target.value)} className={inputCls} /></div>
+        <div><label className={labelCls}>Content</label><textarea rows={6} value={form.content} onChange={e => set('content', e.target.value)} className={inputCls} /></div>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.published} onChange={e => set('published', e.target.checked)} className="accent-gold" />Published</label>
+        <button className="btn-gold w-full">{isEdit ? 'Save Changes' : 'Publish Post'}</button>
+      </form>
+    </Modal>
+  )
+}
