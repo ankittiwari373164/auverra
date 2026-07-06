@@ -6,13 +6,13 @@ import { Footer } from '@/components/footer'
 import { useApp } from '@/app/providers'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { User, Lock, Palette, Sun, Moon } from 'lucide-react'
+import { User, Lock } from 'lucide-react'
 
 const inputCls = "w-full bg-obsidian-700 border border-gold/20 px-3 py-2 text-sm outline-none focus:border-gold text-platinum-light"
 const labelCls = "text-xs uppercase tracking-widest text-gold mb-1 block"
 
 export default function SettingsPage() {
-  const { user, loading, refreshUser, theme, setTheme } = useApp() || {}
+  const { user, loading, refreshUser } = useApp() || {}
   const [name, setName] = useState('')
   const [savingName, setSavingName] = useState(false)
   const [pw, setPw] = useState({ password: '', confirm: '' })
@@ -73,19 +73,6 @@ export default function SettingsPage() {
                 <div><label className={labelCls}>Confirm Password</label><input type="password" value={pw.confirm} onChange={e => setPw(p => ({ ...p, confirm: e.target.value }))} className={inputCls} /></div>
                 <button disabled={savingPw} className="btn-outline-gold text-sm">{savingPw ? 'Updating...' : 'Update Password'}</button>
               </form>
-            </div>
-
-            <div className="glass border border-gold/15 p-8 rounded-sm">
-              <div className="flex items-center gap-3 mb-6"><Palette className="w-5 h-5 text-gold" /><h3 className="font-serif text-xl text-platinum-light">Appearance</h3></div>
-              <p className="text-sm text-platinum-light/60 mb-5">Choose how Auverra looks on your device.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setTheme?.('dark')} className={`flex-1 flex items-center justify-center gap-2 p-4 border rounded-sm transition ${theme === 'dark' ? 'border-gold bg-gold/10 text-gold' : 'border-gold/20 text-platinum-light/60 hover:border-gold/40'}`}>
-                  <Moon className="w-4 h-4" /> Dark
-                </button>
-                <button onClick={() => setTheme?.('light')} className={`flex-1 flex items-center justify-center gap-2 p-4 border rounded-sm transition ${theme === 'light' ? 'border-gold bg-gold/10 text-gold' : 'border-gold/20 text-platinum-light/60 hover:border-gold/40'}`}>
-                  <Sun className="w-4 h-4" /> Light
-                </button>
-              </div>
             </div>
           </div>
         </div>

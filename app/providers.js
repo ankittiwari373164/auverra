@@ -12,22 +12,6 @@ export function Providers({ children }) {
   const [cart, setCart] = useState([])
   const [wishlist, setWishlist] = useState([])
   const [loading, setLoading] = useState(true)
-  const [theme, setThemeState] = useState('dark')
-
-  useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('auverra_theme') : null
-    const initial = saved === 'light' || saved === 'dark' ? saved : 'dark'
-    setThemeState(initial)
-    document.documentElement.classList.toggle('light', initial === 'light')
-  }, [])
-
-  const setTheme = (t) => {
-    setThemeState(t)
-    localStorage.setItem('auverra_theme', t)
-    document.documentElement.classList.toggle('light', t === 'light')
-  }
-  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark')
-
   const refreshUser = async () => {
     try {
       const res = await fetch('/api/me', { cache: 'no-store' })
@@ -99,10 +83,10 @@ export function Providers({ children }) {
   }
 
   return (
-    <AppContext.Provider value={{ user, cart, wishlist, loading, refreshUser, addToCart, removeFromCart, updateQty, toggleWishlist, setUser, theme, setTheme, toggleTheme }}>
+    <AppContext.Provider value={{ user, cart, wishlist, loading, refreshUser, addToCart, removeFromCart, updateQty, toggleWishlist, setUser }}>
       {children}
       <MobileNav />
-      <Toaster position="top-right" theme={theme === 'light' ? 'light' : 'dark'} toastOptions={{ style: { background: theme === 'light' ? '#ffffff' : '#141416', border: '1px solid rgba(201,169,97,0.3)', color: theme === 'light' ? '#1a1a1e' : '#e5e5ea' } }} />
+      <Toaster position="top-right" theme="light" toastOptions={{ style: { background: '#ffffff', border: '1px solid rgba(201,169,97,0.3)', color: '#1a1a1e' } }} />
     </AppContext.Provider>
   )
 }

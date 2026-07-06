@@ -1,14 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { Search, ShoppingBag, Heart, User, Menu, X, LogOut, LayoutDashboard, Sun, Moon } from 'lucide-react'
+import { Search, ShoppingBag, Heart, User, Menu, X, LogOut, LayoutDashboard } from 'lucide-react'
 import { useApp } from '@/app/providers'
 import { useRouter, usePathname } from 'next/navigation'
 
 const PHOTO_HERO_PAGES = ['/', '/about', '/craftsmanship']
 
 export function Navbar() {
-  const { user, cart, wishlist, setUser, theme, toggleTheme } = useApp() || {}
+  const { user, cart, wishlist, setUser } = useApp() || {}
   const pathname = usePathname()
   const hasPhotoHero = PHOTO_HERO_PAGES.includes(pathname)
   const [scrolled, setScrolled] = useState(false)
@@ -63,9 +63,6 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-4 md:gap-5">
-          <button onClick={toggleTheme} className="text-platinum-light/80 hover:text-gold transition" aria-label="Toggle theme">
-            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-          </button>
           <button onClick={() => setSearchOpen(!searchOpen)} className="text-platinum-light/80 hover:text-gold transition"><Search className="w-5 h-5" /></button>
           <Link href="/account/wishlist" className="text-platinum-light/80 hover:text-gold transition relative hidden sm:block">
             <Heart className="w-5 h-5" />
