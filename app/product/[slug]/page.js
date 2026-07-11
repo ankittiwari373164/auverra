@@ -13,7 +13,7 @@ export default function ProductDetailPage({ params }) {
   const [product, setProduct] = useState(null)
   const [related, setRelated] = useState([])
   const [selectedImage, setSelectedImage] = useState(0)
-  const [selectedDial, setSelectedDial] = useState(0)
+  const [selectedDial, setSelectedDial] = useState(null)
   const [selectedStrap, setSelectedStrap] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [tab, setTab] = useState('description')
@@ -24,20 +24,33 @@ export default function ProductDetailPage({ params }) {
   const { addToCart, toggleWishlist, wishlist, user } = useApp() || {}
 
   useEffect(() => {
-    fetch(`/api/products/${slug}`).then(r => r.json()).then(d => { setProduct(d.product); setRelated(d.related || []) })
+    fetch(`/api/products/${slug}`).then(r => r.json()).then(d => {
+      setProduct(d.product); setRelated(d.related || [])
+      const colors = d.product?.variants?.dial || []
+      setSelectedDial(colors.length === 1 ? 0 : null)
+    })
     fetch(`/api/reviews/${slug}`).then(r => r.json()).then(d => setReviews(d.items || []))
   }, [slug])
+
+  useEffect(() => { setSelectedImage(0) }, [selectedDial])
 
   if (!product) return <div className="min-h-screen bg-obsidian"><Navbar /><div className="pt-32 container-lux"><div className="aspect-square bg-obsidian-700 shimmer rounded-sm max-w-3xl" /></div></div>
 
   const inWishlist = wishlist?.some(w => w.productId === product._id)
+  const colors = product.variants?.dial || []
+  const activeColor = selectedDial != null ? colors[selectedDial] : null
+  const galleryImages = activeColor?.images?.length ? activeColor.images : product.images
+  const displayPrice = activeColor?.price ?? product.price
+  const displayCompareAt = activeColor?.compareAtPrice ?? product.compareAtPrice
   const variant = {
-    dial: product.variants?.dial?.[selectedDial],
+    dial: activeColor ? { name: activeColor.name, hex: activeColor.hex } : undefined,
     strap: product.variants?.strap?.[selectedStrap],
   }
 
   const handleAdd = () => {
-    addToCart(product, variant, quantity)
+    if (colors.length > 1 && selectedDial == null) { toast.error('Please select a color'); return }
+    const cartProduct = { ...product, price: displayPrice, compareAtPrice: displayCompareAt, images: galleryImages }
+    addToCart(cartProduct, variant, quantity)
     toast.success(`${product.name} added to bag`)
   }
 
@@ -68,11 +81,11 @@ export default function ProductDetailPage({ params }) {
               <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-obsidian-700 to-obsidian-900 mb-4 group"
                 onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, active: true }) }}
                 onMouseLeave={() => setZoom({ ...zoom, active: false })}>
-                <img src={product.images[selectedImage] + '?auto=format&fit=crop&w=1400&q=90'} alt={product.name} className="w-full h-full object-cover transition-transform duration-500" style={zoom.active ? { transform: `scale(2)`, transformOrigin: `${zoom.x}% ${zoom.y}%` } : {}} />
+                <img src={galleryImages[selectedImage] + '?auto=format&fit=crop&w=1400&q=90'} alt={product.name} className="w-full h-full object-cover transition-transform duration-500" style={zoom.active ? { transform: `scale(2)`, transformOrigin: `${zoom.x}% ${zoom.y}%` } : {}} />
                 {product.badges?.map((b, i) => <div key={i} className="absolute top-6 left-6 px-3 py-1 bg-gold text-obsidian text-[10px] uppercase tracking-[0.2em] font-bold">{b}</div>)}
               </div>
               <div className="grid grid-cols-4 gap-3">
-                {product.images.map((img, i) => (
+                {galleryImages.map((img, i) => (
                   <button key={i} onClick={() => setSelectedImage(i)} className={`relative aspect-square overflow-hidden border-2 transition ${selectedImage === i ? 'border-gold' : 'border-transparent opacity-60 hover:opacity-100'}`}>
                     <img src={img + '?auto=format&fit=crop&w=300&q=80'} alt="" className="w-full h-full object-cover" />
                   </button>
@@ -92,16 +105,18 @@ export default function ProductDetailPage({ params }) {
               </div>
 
               <div className="flex items-baseline gap-4 mb-8 pb-8 border-b border-gold/10">
-                <span className="text-4xl font-serif text-gradient-gold">₹{product.price.toLocaleString('en-IN')}</span>
-                {product.compareAtPrice && <span className="text-lg text-platinum-light/40 line-through">₹{product.compareAtPrice.toLocaleString('en-IN')}</span>}
-                {product.compareAtPrice && <span className="text-xs text-rosegold uppercase tracking-widest">Save ₹{(product.compareAtPrice - product.price).toLocaleString('en-IN')}</span>}
+                <span className="text-4xl font-serif text-gradient-gold">₹{displayPrice.toLocaleString('en-IN')}</span>
+                {displayCompareAt && <span className="text-lg text-platinum-light/40 line-through">₹{displayCompareAt.toLocaleString('en-IN')}</span>}
+                {displayCompareAt && <span className="text-xs text-rosegold uppercase tracking-widest">Save ₹{(displayCompareAt - displayPrice).toLocaleString('en-IN')}</span>}
               </div>
 
-              {product.variants?.dial && (
+              {colors.length > 0 && (
                 <div className="mb-6">
-                  <div className="text-xs uppercase tracking-[0.25em] text-gold mb-3">Dial: <span className="text-platinum-light/70 normal-case tracking-normal">{product.variants.dial[selectedDial].name}</span></div>
+                  <div className="text-xs uppercase tracking-[0.25em] text-gold mb-3">
+                    Color{activeColor ? <>: <span className="text-platinum-light/70 normal-case tracking-normal">{activeColor.name}</span></> : colors.length > 1 ? <span className="text-rosegold normal-case tracking-normal ml-1">— please select</span> : null}
+                  </div>
                   <div className="flex gap-3">
-                    {product.variants.dial.map((d, i) => (
+                    {colors.map((d, i) => (
                       <button key={i} onClick={() => setSelectedDial(i)} title={d.name} className={`w-11 h-11 rounded-full border-2 transition ${selectedDial === i ? 'border-gold scale-110' : 'border-platinum-light/20 hover:border-gold/50'}`} style={{ background: d.hex }} />
                     ))}
                   </div>
@@ -131,7 +146,7 @@ export default function ProductDetailPage({ params }) {
               </div>
 
               <div className="flex gap-3 mb-8">
-                <button onClick={handleAdd} className="btn-gold flex-1 inline-flex items-center justify-center gap-2"><ShoppingBag className="w-4 h-4" /> Add to Bag</button>
+                <button onClick={handleAdd} className={`btn-gold flex-1 inline-flex items-center justify-center gap-2 ${colors.length > 1 && selectedDial == null ? 'opacity-60' : ''}`}><ShoppingBag className="w-4 h-4" /> Add to Bag</button>
                 <button onClick={() => toggleWishlist?.(product)} className={`w-14 h-14 border ${inWishlist ? 'bg-gold border-gold text-obsidian' : 'border-gold/40 text-gold hover:bg-gold/10'} flex items-center justify-center transition`}><Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} /></button>
               </div>
 

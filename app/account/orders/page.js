@@ -48,7 +48,8 @@ export default function OrdersPage() {
                         <img src={it.image + '?auto=format&fit=crop&w=200&q=80'} className="w-14 h-14 object-cover" />
                         <div className="flex-1">
                           <div className="font-serif text-platinum-light">{it.name}</div>
-                          <div className="text-xs text-platinum-light/60">Qty: {it.quantity}</div>
+                          {it.variant?.dial?.name && <div className="text-xs text-gold mt-0.5">Color: {it.variant.dial.name}</div>}
+                          <div className="text-xs text-platinum-light/60 mt-0.5">Qty: {it.quantity}</div>
                         </div>
                         <div className="text-sm">₹{(it.price * it.quantity).toLocaleString('en-IN')}</div>
                       </div>

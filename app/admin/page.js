@@ -287,23 +287,44 @@ export default function AdminPage() {
             <div className="glass border border-gold/10 rounded-sm overflow-hidden">
               <div className="p-6 border-b border-gold/10"><h3 className="font-serif text-lg text-gold">All Orders ({orders.length})</h3></div>
               {orders.length === 0 ? <div className="p-8 text-center text-platinum-light/50">No orders yet</div> : (
-                <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead><tr className="border-b border-gold/10 text-xs uppercase tracking-widest text-platinum-light/50"><th className="text-left p-4">Order ID</th><th className="text-left p-4">Customer</th><th className="text-left p-4">Date</th><th className="text-left p-4">Total</th><th className="text-left p-4">Status</th></tr></thead>
-                  <tbody>{orders.map(o => (
-                    <tr key={o.orderId} className="border-b border-gold/5">
-                      <td className="p-4 text-sm text-gold">{o.orderId}</td>
-                      <td className="p-4 text-sm">{o.email}</td>
-                      <td className="p-4 text-sm text-platinum-light/70">{new Date(o.createdAt).toLocaleDateString()}</td>
-                      <td className="p-4 text-sm text-gold">₹{o.total?.toLocaleString('en-IN')}</td>
-                      <td className="p-4">
-                        <select value={o.status} onChange={e => updateOrderStatus(o.orderId, e.target.value)} className="bg-obsidian-700 border border-gold/30 text-gold text-[11px] uppercase tracking-widest px-3 py-1 outline-none">
+                <div className="divide-y divide-gold/5">
+                  {orders.map(o => (
+                    <details key={o.orderId} className="group">
+                      <summary className="p-4 flex flex-wrap items-center gap-4 cursor-pointer hover:bg-obsidian-700/30 list-none">
+                        <span className="text-sm text-gold w-32 flex-shrink-0">{o.orderId}</span>
+                        <span className="text-sm flex-1 min-w-[140px]">{o.email}</span>
+                        <span className="text-sm text-platinum-light/70 w-28 flex-shrink-0">{new Date(o.createdAt).toLocaleDateString()}</span>
+                        <span className="text-sm text-gold w-28 flex-shrink-0">₹{o.total?.toLocaleString('en-IN')}</span>
+                        <select value={o.status} onClick={e => e.stopPropagation()} onChange={e => updateOrderStatus(o.orderId, e.target.value)} className="bg-obsidian-700 border border-gold/30 text-gold text-[11px] uppercase tracking-widest px-3 py-1 outline-none flex-shrink-0">
                           {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
-                      </td>
-                    </tr>
-                  ))}</tbody>
-                </table>
+                        <span className="text-[10px] uppercase tracking-widest text-platinum-light/40 flex-shrink-0 ml-auto group-open:hidden">Show items ▾</span>
+                        <span className="text-[10px] uppercase tracking-widest text-platinum-light/40 flex-shrink-0 ml-auto hidden group-open:inline">Hide items ▴</span>
+                      </summary>
+                      <div className="px-4 pb-4 pt-1 bg-obsidian-700/20">
+                        <div className="space-y-2 max-w-2xl">
+                          {(o.items || []).map((it, i) => (
+                            <div key={i} className="flex items-center gap-3 text-sm">
+                              {it.image && <img src={it.image + '?auto=format&fit=crop&w=100&q=80'} className="w-10 h-10 object-cover flex-shrink-0" />}
+                              <div className="flex-1">
+                                <div className="text-platinum-light">{it.name}</div>
+                                {it.variant?.dial?.name && <div className="text-xs text-gold">Color: {it.variant.dial.name}</div>}
+                                {it.variant?.strap?.name && <div className="text-xs text-platinum-light/50">Strap: {it.variant.strap.name}</div>}
+                              </div>
+                              <div className="text-platinum-light/60 flex-shrink-0">Qty {it.quantity}</div>
+                              <div className="text-gold flex-shrink-0 w-24 text-right">₹{(it.price * it.quantity).toLocaleString('en-IN')}</div>
+                            </div>
+                          ))}
+                        </div>
+                        {o.shipping && (
+                          <div className="mt-4 pt-4 border-t border-gold/10 text-xs text-platinum-light/60 max-w-2xl">
+                            <span className="text-gold uppercase tracking-widest mr-2">Ship to:</span>
+                            {o.shipping.name}, {o.shipping.address}, {o.shipping.city}, {o.shipping.country}
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  ))}
                 </div>
               )}
             </div>
@@ -437,10 +458,32 @@ function ProductModal({ product, onClose, onSave }) {
     featured: !!product.featured, bestSeller: !!product.bestSeller, newArrival: !!product.newArrival,
     features: product.features?.length ? product.features : [''],
     specs: product.specs && Object.keys(product.specs).length ? Object.entries(product.specs).map(([key, value]) => ({ key, value })) : [{ key: '', value: '' }],
-    colors: product.variants?.dial?.length ? product.variants.dial.map(d => ({ name: d.name, hex: d.hex || '#c9a961' })) : [],
+    colors: product.variants?.dial?.length ? product.variants.dial.map(d => ({ name: d.name, hex: d.hex || '#c9a961', price: d.price ?? '', compareAtPrice: d.compareAtPrice ?? '', images: d.images || [] })) : [],
   })
   const [uploading, setUploading] = useState(false)
+  const [uploadingColorIdx, setUploadingColorIdx] = useState(null)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  // ---- per-color image upload ----
+  const handleColorFiles = async (e, colorIdx) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingColorIdx(colorIdx)
+    const supabase = createClient()
+    const uploaded = []
+    for (const file of files) {
+      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.\-]+/g, '-')}`
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: false })
+      if (error) { toast.error(`Failed to upload ${file.name}: ${error.message}`); continue }
+      const { data } = supabase.storage.from('product-images').getPublicUrl(path)
+      uploaded.push(data.publicUrl)
+    }
+    if (uploaded.length) {
+      setForm(f => ({ ...f, colors: f.colors.map((c, i) => i === colorIdx ? { ...c, images: [...c.images, ...uploaded] } : c) }))
+    }
+    setUploadingColorIdx(null)
+    e.target.value = ''
+  }
 
   // ---- image upload ----
   const handleFiles = async (e) => {
@@ -476,7 +519,7 @@ function ProductModal({ product, onClose, onSave }) {
       ...form,
       features: form.features.map(f => f.trim()).filter(Boolean),
       specs,
-      variants: form.colors.length ? { dial: form.colors.filter(c => c.name.trim()).map(c => ({ name: c.name, hex: c.hex })) } : {},
+      variants: form.colors.length ? { dial: form.colors.filter(c => c.name.trim()).map(c => ({ name: c.name, hex: c.hex, ...(c.price !== '' && c.price != null ? { price: Number(c.price) } : {}), ...(c.compareAtPrice !== '' && c.compareAtPrice != null ? { compareAtPrice: Number(c.compareAtPrice) } : {}), images: c.images || [] })) } : {},
       __editSlug: isEdit ? product.slug : undefined,
     }
     delete payload.colors
@@ -529,19 +572,40 @@ function ProductModal({ product, onClose, onSave }) {
           <p className="text-[11px] text-platinum-light/40">Uploads go to your Supabase Storage bucket and are served from there — no external links needed.</p>
         </div>
 
-        {/* Colors (dial variants) */}
+        {/* Colors (dial variants) — each color can have its own images and price */}
         <div>
-          <label className={labelCls}>Colors (Dial Variants)</label>
-          <div className="space-y-2">
+          <label className={labelCls}>Colors</label>
+          <p className="text-[11px] text-platinum-light/40 mb-3">Add a color for every option customers can pick. Leave price blank to use the base price above. If you only add one color, customers won't be asked to choose — it's added automatically.</p>
+          <div className="space-y-4">
             {form.colors.map((c, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input type="color" value={c.hex} onChange={e => updateListItem('colors', i, { ...c, hex: e.target.value })} className="w-10 h-9 bg-obsidian-700 border border-gold/20 rounded-sm cursor-pointer" />
-                <input value={c.name} onChange={e => updateListItem('colors', i, { ...c, name: e.target.value })} placeholder="Color name, e.g. Obsidian Black" className={inputCls} />
-                <button type="button" onClick={() => removeListItem('colors', i)} className="p-2 text-platinum-light/40 hover:text-red-400 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+              <div key={i} className="border border-gold/15 rounded-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <input type="color" value={c.hex} onChange={e => updateListItem('colors', i, { ...c, hex: e.target.value })} className="w-10 h-9 bg-obsidian-700 border border-gold/20 rounded-sm cursor-pointer flex-shrink-0" />
+                  <input value={c.name} onChange={e => updateListItem('colors', i, { ...c, name: e.target.value })} placeholder="Color name, e.g. Obsidian Black" className={inputCls} />
+                  <button type="button" onClick={() => removeListItem('colors', i)} className="p-2 text-platinum-light/40 hover:text-red-400 flex-shrink-0"><Trash2 className="w-4 h-4" /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <input type="number" value={c.price} onChange={e => updateListItem('colors', i, { ...c, price: e.target.value })} placeholder={`Price override (default ₹${form.price || '—'})`} className={inputCls + ' text-xs'} />
+                  <input type="number" value={c.compareAtPrice} onChange={e => updateListItem('colors', i, { ...c, compareAtPrice: e.target.value })} placeholder="Compare-at override (optional)" className={inputCls + ' text-xs'} />
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {c.images.map((url, imgI) => (
+                    <div key={imgI} className="relative aspect-square rounded-sm overflow-hidden border border-gold/20 group">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => updateListItem('colors', i, { ...c, images: c.images.filter((_, x) => x !== imgI) })} className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/70 text-white flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition"><X className="w-3 h-3" /></button>
+                    </div>
+                  ))}
+                  <label className="aspect-square rounded-sm border border-dashed border-gold/30 flex flex-col items-center justify-center gap-0.5 cursor-pointer hover:border-gold/60 hover:bg-gold/5 transition text-platinum-light/50">
+                    {uploadingColorIdx === i ? <Loader2 className="w-4 h-4 animate-spin text-gold" /> : <Upload className="w-4 h-4" />}
+                    <span className="text-[8px] uppercase tracking-widest">Photo</span>
+                    <input type="file" accept="image/*" multiple className="hidden" disabled={uploadingColorIdx !== null} onChange={e => handleColorFiles(e, i)} />
+                  </label>
+                </div>
+                <p className="text-[10px] text-platinum-light/35 mt-2">{c.images.length ? `${c.images.length} photo${c.images.length > 1 ? 's' : ''} for this color` : "No photos yet — falls back to the main product images"}</p>
               </div>
             ))}
           </div>
-          <button type="button" onClick={() => addListItem('colors', { name: '', hex: '#c9a961' })} className="mt-2 text-xs text-gold hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add Color</button>
+          <button type="button" onClick={() => addListItem('colors', { name: '', hex: '#c9a961', price: '', compareAtPrice: '', images: [] })} className="mt-3 text-xs text-gold hover:underline inline-flex items-center gap-1"><Plus className="w-3 h-3" /> Add Color</button>
         </div>
 
         {/* Specifications */}
