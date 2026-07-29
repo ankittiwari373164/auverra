@@ -37,7 +37,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pt-12 border-t border-gold/10">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo.svg" alt="Auverra Watches" className="w-9 h-9" />
+              <img src="/logo.png" alt="Auverra Watches" className="w-13 h-13" />
               <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</div>
             </div>
             <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry. Since 1897.</p>
