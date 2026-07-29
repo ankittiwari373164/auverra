@@ -39,7 +39,7 @@ export function Navbar() {
         <button onClick={() => setOpen(true)} className="lg:hidden text-platinum-light"><Menu className="w-6 h-6" /></button>
 
         <Link href="/" className="flex items-center gap-3 group">
-          <img src="/logo.svg" alt="Auverra Watches" className="w-9 h-9 md:w-11 md:h-11 drop-shadow-[0_0_12px_rgba(201,169,97,0.35)] group-hover:scale-105 transition-transform duration-500" />
+          <img src="/logo.png" alt="Auverra Watches" className="w-9 h-9 md:w-11 md:h-11 drop-shadow-[0_0_12px_rgba(201,169,97,0.35)] group-hover:scale-105 transition-transform duration-500" />
           <span className="flex flex-col leading-none">
             <span className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</span>
             <span className="text-[8px] md:text-[9px] uppercase tracking-[0.45em] text-platinum-light/50 mt-1">Watches</span>
