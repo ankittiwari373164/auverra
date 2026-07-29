@@ -5,9 +5,9 @@ import { Footer } from '@/components/footer'
 import { Plus, Minus } from 'lucide-react'
 
 const FAQS = [
-  { q: 'Are Auverra watches authentic and warranted?', a: 'Every Auverra timepiece is handcrafted at our atelier in La Chaux-de-Fonds, Switzerland, and comes with a 2-year international warranty. Each watch is delivered with a signed certificate of authenticity and a numbered pedigree card.' },
-  { q: 'What is your shipping and delivery policy?', a: 'We offer complimentary insured worldwide delivery on all orders. Domestic orders within India ship within 3-5 business days. International orders take 7-10 business days. Every parcel is signature-required.' },
-  { q: 'Do you offer returns or exchanges?', a: 'Yes. You may return an unworn timepiece within 30 days for a full refund. Custom-engraved or personalized pieces are non-refundable. Please contact our concierge for a return authorization.' },
+  { q: 'Are Auverra watches authentic?', a: 'Every timepiece we sell is delivered with an authenticity certificate. Please get in touch with us via WhatsApp for full product details before placing your order.' },
+  { q: 'What is your shipping and delivery policy?', a: 'We offer free insured delivery on all orders, with Cash on Delivery (COD) available for your convenience — a ₹150 COD charge applies to all COD orders. All orders are dispatched only after final confirmation.' },
+  { q: 'Do you offer returns or exchanges?', a: 'We follow a strict No Refund Policy — exchange only, and only in cases of damage, defect, or a wrong item delivered. A clear, unedited unboxing video is mandatory for any exchange request, raised within 48 hours of delivery. See our full Exchange & Refund Policy for details.' },
   { q: 'How do I service my Auverra watch?', a: 'We recommend servicing every 4-5 years. Contact our concierge to arrange collection. All servicing is performed at our atelier by master watchmakers using original parts.' },
   { q: 'Can I customize a watch?', a: 'Absolutely. Auverra offers bespoke commissions — from custom dials to engraved case backs. Contact our concierge for a private consultation. Bespoke pieces take 6-8 months.' },
   { q: 'What payment methods do you accept?', a: 'We accept Razorpay (UPI, cards, netbanking), Stripe (international cards), PayPal, Cash on Delivery (India only), and Bank Transfer for orders above ₹5 lakh. All transactions are secure.' },

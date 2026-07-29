@@ -39,7 +39,7 @@ export function Navbar() {
         <button onClick={() => setOpen(true)} className="lg:hidden text-platinum-light"><Menu className="w-6 h-6" /></button>
 
         <Link href="/" className="flex items-center gap-3 group">
-          <img src="/logo.png" alt="Auverra Watches" className="w-12 h-12 md:w-13 md:h-13 drop-shadow-[0_0_12px_rgba(201,169,97,0.35)] group-hover:scale-105 transition-transform duration-500" />
+          <img src="/logo.png" alt="Auverra Watches" className="w-13 h-13 md:w-12 md:h-12 drop-shadow-[0_0_12px_rgba(201,169,97,0.35)] group-hover:scale-105 transition-transform duration-500" />
           <span className="flex flex-col leading-none">
             <span className="text-xl md:text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</span>
             <span className="text-[8px] md:text-[9px] uppercase tracking-[0.45em] text-platinum-light/50 mt-1">Watches</span>
@@ -48,10 +48,10 @@ export function Navbar() {
 
         <nav className="hidden lg:flex items-center gap-10">
           {[
-            { href: '/shop', label: 'Collections' },
-            { href: '/shop?category=chronograph', label: 'Chronographs' },
-            { href: '/shop?category=tourbillon', label: 'Tourbillons' },
-            { href: '/shop?category=ladies', label: 'Ladies' },
+            { href: '/shop', label: 'Mens' },
+            { href: '/shop?category=ladies', label: 'Womens' },
+            { href: '/shop?search=automatic', label: 'Automatic' },
+            { href: '/shop?brand=all', label: 'Brand' },
             { href: '/blog', label: 'Journal' },
             { href: '/contact', label: 'Contact' },
           ].map(l => (
@@ -114,8 +114,15 @@ export function Navbar() {
         <div className="fixed inset-0 z-[60] glass-dark lg:hidden" onClick={() => setOpen(false)}>
           <div className="absolute top-6 right-6"><button onClick={() => setOpen(false)}><X className="w-6 h-6 text-platinum-light" /></button></div>
           <nav className="h-full flex flex-col items-center justify-center gap-8" onClick={e => e.stopPropagation()}>
-            {['Collections', 'Chronographs', 'Tourbillons', 'Ladies', 'Journal', 'Contact'].map((l, i) => (
-              <Link key={i} href={i === 0 ? '/shop' : i === 4 ? '/blog' : i === 5 ? '/contact' : `/shop?category=${l.toLowerCase()}`} onClick={() => setOpen(false)} className="text-2xl font-serif text-platinum-light hover:text-gold transition">{l}</Link>
+            {[
+              { label: 'Mens', href: '/shop' },
+              { label: 'Womens', href: '/shop?category=ladies' },
+              { label: 'Automatic', href: '/shop?search=automatic' },
+              { label: 'Brand', href: '/shop?brand=all' },
+              { label: 'Journal', href: '/blog' },
+              { label: 'Contact', href: '/contact' },
+            ].map((l, i) => (
+              <Link key={i} href={l.href} onClick={() => setOpen(false)} className="text-2xl font-serif text-platinum-light hover:text-gold transition">{l.label}</Link>
             ))}
           </nav>
         </div>

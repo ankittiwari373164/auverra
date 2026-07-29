@@ -37,7 +37,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pt-12 border-t border-gold/10">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo.png" alt="Auverra Watches" className="w-13 h-13" />
+              <img src="/logo.png" alt="Auverra Watches" className="w-9 h-9" />
               <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</div>
             </div>
             <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry. Since 1897.</p>
@@ -63,7 +63,7 @@ export function Footer() {
               <li><Link href="/contact" className="hover:text-gold transition">Contact Us</Link></li>
               <li><Link href="/faq" className="hover:text-gold transition">FAQ</Link></li>
               <li><Link href="/shipping" className="hover:text-gold transition">Shipping & Delivery</Link></li>
-              <li><Link href="/returns" className="hover:text-gold transition">Returns & Warranty</Link></li>
+              <li><Link href="/returns" className="hover:text-gold transition">Exchange & Refund Policy</Link></li>
               <li><Link href="/care" className="hover:text-gold transition">Watch Care Guide</Link></li>
             </ul>
           </div>
@@ -81,8 +81,9 @@ export function Footer() {
 
         <div className="mt-16 pt-8 border-t border-gold/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-platinum-light/40">
           <div>&copy; {new Date().getFullYear()} Auverra Watches. Crafted with obsessive precision.</div>
-          <div className="flex gap-6">
-            <span>Swiss Made</span><span>•</span><span>2-Year International Warranty</span><span>•</span><span>Free Insured Delivery</span>
+          <div className="flex flex-wrap gap-6 items-center justify-center">
+            <span>Cash on Delivery Available</span><span>•</span><span>Free Insured Delivery</span><span>•</span>
+            <a href="https://wa.me/912249001897" target="_blank" rel="noopener noreferrer" className="text-gold hover:underline">Join our WhatsApp Community →</a>
           </div>
         </div>
       </div>

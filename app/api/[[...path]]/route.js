@@ -150,6 +150,7 @@ async function handle(request, { params }) {
       const { searchParams } = new URL(request.url)
       const category = searchParams.get('category')
       const collection = searchParams.get('collection')
+      const brand = searchParams.get('brand')
       const search = searchParams.get('search')
       const sort = searchParams.get('sort') || 'featured'
       const minPrice = parseInt(searchParams.get('minPrice') || '0')
@@ -158,6 +159,7 @@ async function handle(request, { params }) {
       let q = db.from('products').select('*').gte('price', minPrice).lte('price', maxPrice)
       if (category) q = q.eq('category', category)
       if (collection) q = q.eq('collection', collection)
+      if (brand && brand !== 'all') q = q.eq('brand', brand)
       if (search) q = q.or(`name.ilike.%${search}%,tagline.ilike.%${search}%,description.ilike.%${search}%`)
       const { data, error } = await q
       if (error) throw error

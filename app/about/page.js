@@ -29,7 +29,7 @@ export default function AboutPage() {
               { year: '1968', title: 'Tourbillon Era', text: 'Auverra introduces its first flying tourbillon.' },
               { year: '1997', title: 'Centennial Edition', text: 'Limited-edition 100th anniversary piece; 100 numbered watches.' },
               { year: '2019', title: 'Digital Craftsmanship', text: 'Traditional artistry meets cutting-edge metallurgy.' },
-              { year: '2025', title: 'India Boutique', text: 'Flagship Maison opens in Mumbai’s Kala Ghoda.' },
+              { year: '2025', title: 'India Boutique', text: 'Flagship Maison opens at Musafir Khana, Mumbai.' },
             ].map((m, i) => (
               <div key={i} className="glass border border-gold/15 p-8 rounded-sm luxury-card">
                 <div className="text-4xl font-serif text-gradient-gold mb-3">{m.year}</div>

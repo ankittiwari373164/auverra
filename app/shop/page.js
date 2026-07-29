@@ -13,12 +13,14 @@ function ShopContent() {
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState([])
   const [collections, setCollections] = useState([])
+  const [brands, setBrands] = useState([])
   const [filterOpen, setFilterOpen] = useState(false)
   const [priceRange, setPriceRange] = useState([0, 2000000])
   const [sort, setSort] = useState(searchParams.get('sort') || 'featured')
 
   const category = searchParams.get('category') || ''
   const collection = searchParams.get('collection') || ''
+  const brand = searchParams.get('brand') || ''
   const search = searchParams.get('search') || ''
 
   useEffect(() => {
@@ -26,16 +28,18 @@ function ShopContent() {
     const q = new URLSearchParams()
     if (category) q.set('category', category)
     if (collection) q.set('collection', collection)
+    if (brand && brand !== 'all') q.set('brand', brand)
     if (search) q.set('search', search)
     q.set('sort', sort)
     q.set('minPrice', priceRange[0])
     q.set('maxPrice', priceRange[1])
     fetch(`/api/products?${q}`).then(r => r.json()).then(d => { setProducts(d.items || []); setLoading(false) })
-  }, [category, collection, search, sort, priceRange])
+  }, [category, collection, brand, search, sort, priceRange])
 
   useEffect(() => {
     fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.items || []))
     fetch('/api/collections').then(r => r.json()).then(d => setCollections(d.items || []))
+    fetch('/api/products').then(r => r.json()).then(d => setBrands([...new Set((d.items || []).map(p => p.brand).filter(Boolean))].sort()))
   }, [])
 
   const setFilter = (key, value) => {
@@ -85,6 +89,18 @@ function ShopContent() {
                   ))}
                 </ul>
               </div>
+
+              {brands.length > 0 && (
+                <div>
+                  <h3 className="text-[10px] uppercase tracking-[0.3em] text-gold mb-4">Brand</h3>
+                  <ul className="space-y-2">
+                    <li><button onClick={() => setFilter('brand', '')} className={`text-sm ${!brand ? 'text-gold' : 'text-platinum-light/70 hover:text-gold'}`}>All Brands</button></li>
+                    {brands.map(b => (
+                      <li key={b}><button onClick={() => setFilter('brand', b)} className={`text-sm ${brand === b ? 'text-gold' : 'text-platinum-light/70 hover:text-gold'}`}>{b}</button></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div>
                 <h3 className="text-[10px] uppercase tracking-[0.3em] text-gold mb-4">Collections</h3>

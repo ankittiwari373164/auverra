@@ -7,7 +7,7 @@ const SECTIONS = [
   { h: 'Payment', p: 'We accept payment via the methods enabled at checkout (cards, UPI, netbanking, PayPal, bank transfer, or cash on delivery where available). Orders are confirmed only after successful payment authorization.' },
   { h: 'Limited Editions', p: 'Limited edition and made-to-order pieces are non-cancellable once production begins, except as required by law.' },
   { h: 'Intellectual Property', p: 'All designs, imagery, and content on this site are the property of Auverra Watches and may not be reproduced without written consent.' },
-  { h: 'Limitation of Liability', p: 'Auverra is not liable for indirect or consequential damages arising from product use beyond the remedies stated in our warranty policy.' },
+  { h: 'Limitation of Liability', p: 'Auverra is not liable for indirect or consequential damages arising from product use beyond the remedies stated in our Exchange & Refund Policy.' },
   { h: 'Governing Law', p: 'These terms are governed by the laws of India, with courts in Mumbai having exclusive jurisdiction.' },
 ]
 

@@ -8,7 +8,7 @@ const SECTIONS = [
   { h: 'Payment Security', p: 'Payment details are processed by PCI-DSS compliant gateways (Razorpay, Stripe, PayPal). Auverra does not store your full card numbers on its own servers.' },
   { h: 'Cookies', p: 'We use cookies to keep you signed in, remember your cart, and understand site usage. You can manage cookie preferences through your browser settings.' },
   { h: 'Your Rights', p: 'You may request access, correction, or deletion of your personal data at any time by contacting our support team.' },
-  { h: 'Data Retention', p: 'Order and account data is retained as long as your account is active, and as required for legal, tax, and warranty purposes thereafter.' },
+  { h: 'Data Retention', p: 'Order and account data is retained as long as your account is active, and as required for legal and tax purposes thereafter.' },
 ]
 
 export default function PrivacyPage() {

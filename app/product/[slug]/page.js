@@ -153,9 +153,9 @@ export default function ProductDetailPage({ params }) {
               <div className="grid grid-cols-2 gap-3 pt-8 border-t border-gold/10">
                 {[
                   { icon: Truck, label: 'Free Insured Delivery' },
-                  { icon: Shield, label: '2-Year Warranty' },
-                  { icon: RotateCcw, label: '30-Day Return' },
+                  { icon: RotateCcw, label: 'Exchange on Damage/Defect' },
                   { icon: Award, label: 'Authenticity Certificate' },
+                  { icon: Shield, label: 'Cash on Delivery Available' },
                 ].map(({ icon: Icon, label }, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-platinum-light/70">
                     <Icon className="w-4 h-4 text-gold" /> {label}

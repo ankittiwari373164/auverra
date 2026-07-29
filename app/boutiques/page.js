@@ -4,7 +4,7 @@ import { Footer } from '@/components/footer'
 import { MapPin, Phone } from 'lucide-react'
 
 const BOUTIQUES = [
-  { city: 'Mumbai', area: 'Kala Ghoda', address: 'Flagship Maison, Rampart Row, Kala Ghoda, Mumbai 400001', phone: '+91 22 4000 1897' },
+  { city: 'Mumbai', area: 'Musafir Khana', address: 'Musafir Khana, Mumbai 400001', phone: '+91 22 4000 1897' },
   { city: 'New Delhi', area: 'Connaught Place', address: 'Auverra Boutique, N-Block, Connaught Place, New Delhi 110001', phone: '+91 11 4000 1897' },
   { city: 'Bengaluru', area: 'UB City', address: 'Auverra Boutique, UB City Mall, Vittal Mallya Road, Bengaluru 560001', phone: '+91 80 4000 1897' },
   { city: 'La Chaux-de-Fonds', area: 'Switzerland', address: 'The Original Atelier, Rue de la Serre, La Chaux-de-Fonds, Switzerland', phone: '+41 32 000 1897' },

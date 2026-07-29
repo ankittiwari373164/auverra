@@ -124,7 +124,7 @@ export default function HomePage() {
             {[
               { icon: Award, label: '128 Years', sub: 'Of Heritage' },
               { icon: Sparkles, label: 'In-House', sub: 'Movements' },
-              { icon: Shield, label: '2-Year', sub: 'International Warranty' },
+              { icon: Shield, label: 'Authenticity', sub: 'Certified Pieces' },
               { icon: Truck, label: 'Free Insured', sub: 'Global Delivery' },
             ].map(({ icon: Icon, label, sub }, i) => (
               <div key={i} className="flex items-center gap-4 justify-center md:justify-start">
