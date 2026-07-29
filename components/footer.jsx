@@ -1,25 +1,12 @@
 'use client'
 import Link from 'next/link'
-import { Instagram, Twitter, Facebook, Youtube, Mail } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
+import { Instagram, Twitter, Facebook, Youtube, MessageCircle } from 'lucide-react'
+
+const WHATSAPP_NUMBER = '912249001897'
+const WHATSAPP_MESSAGE = "Hi Auverra Watches! I'd like to join your WhatsApp community for updates on new arrivals and offers."
+const WHATSAPP_JOIN_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
 
 export function Footer() {
-  const [email, setEmail] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const subscribe = async (e) => {
-    e.preventDefault()
-    if (!email) return
-    setLoading(true)
-    try {
-      const res = await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) })
-      if (res.ok) { toast.success('Welcome to the Auverra circle.'); setEmail('') }
-      else toast.error('Subscription failed')
-    } catch { toast.error('Try again later') }
-    setLoading(false)
-  }
-
   return (
     <footer className="relative bg-obsidian-900 border-t border-gold/10 pt-20 pb-8 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none opacity-40" style={{ background: 'radial-gradient(ellipse at top, rgba(201,169,97,0.08) 0%, transparent 50%)' }} />
@@ -27,11 +14,8 @@ export function Footer() {
         <div className="text-center max-w-2xl mx-auto mb-16">
           <div className="divider-gold w-24 mx-auto mb-6" />
           <h3 className="text-3xl md:text-4xl font-serif mb-4 text-gradient-gold">Join the Auverra Circle</h3>
-          <p className="text-platinum-light/60 mb-8">Receive early access to limited editions, private events, and the stories behind each timepiece.</p>
-          <form onSubmit={subscribe} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" required placeholder="your@email.com" className="flex-1 bg-obsidian-700/50 border border-gold/20 px-4 py-3 text-sm outline-none focus:border-gold text-platinum-light placeholder:text-platinum-light/40 transition" />
-            <button disabled={loading} className="btn-gold">{loading ? '...' : 'Subscribe'}</button>
-          </form>
+          <p className="text-platinum-light/60 mb-8">Get instant updates on new arrivals, exclusive offers, and the stories behind each timepiece — straight to your WhatsApp.</p>
+          <a href={WHATSAPP_JOIN_LINK} target="_blank" rel="noopener noreferrer" className="btn-gold inline-flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Join Our WhatsApp Community</a>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pt-12 border-t border-gold/10">
@@ -83,7 +67,7 @@ export function Footer() {
           <div>&copy; {new Date().getFullYear()} Auverra Watches. Crafted with obsessive precision.</div>
           <div className="flex flex-wrap gap-6 items-center justify-center">
             <span>Cash on Delivery Available</span><span>•</span><span>Free Insured Delivery</span><span>•</span>
-            <a href="https://wa.me/912249001897" target="_blank" rel="noopener noreferrer" className="text-gold hover:underline">Join our WhatsApp Community →</a>
+            <a href={WHATSAPP_JOIN_LINK} target="_blank" rel="noopener noreferrer" className="text-gold hover:underline">Join our WhatsApp Community →</a>
           </div>
         </div>
       </div>

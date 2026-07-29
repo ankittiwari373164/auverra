@@ -3,6 +3,7 @@
 import { Toaster } from 'sonner'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { MobileNav } from '@/components/mobile-nav'
+import { WhatsAppFloat } from '@/components/whatsapp-float'
 
 const AppContext = createContext(null)
 export const useApp = () => useContext(AppContext)
@@ -86,6 +87,7 @@ export function Providers({ children }) {
     <AppContext.Provider value={{ user, cart, wishlist, loading, refreshUser, addToCart, removeFromCart, updateQty, toggleWishlist, setUser }}>
       {children}
       <MobileNav />
+      <WhatsAppFloat />
       <Toaster position="top-right" theme="light" toastOptions={{ style: { background: '#ffffff', border: '1px solid rgba(201,169,97,0.3)', color: '#1a1a1e' } }} />
     </AppContext.Provider>
   )
