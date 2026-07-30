@@ -15,7 +15,7 @@ function ShopContent() {
   const [collections, setCollections] = useState([])
   const [brands, setBrands] = useState([])
   const [filterOpen, setFilterOpen] = useState(false)
-  const [priceRange, setPriceRange] = useState([0, 2000000])
+  const [priceRange, setPriceRange] = useState([0, Number(searchParams.get('maxPrice')) || 2000000])
   const [sort, setSort] = useState(searchParams.get('sort') || 'featured')
 
   const category = searchParams.get('category') || ''

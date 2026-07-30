@@ -3,7 +3,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 
 const SECTIONS = [
-  { h: 'Orders & Pricing', p: 'All prices are listed in INR and inclusive of applicable GST unless stated otherwise. Auverra reserves the right to correct pricing errors and cancel affected orders with full refund.' },
+  { h: 'Orders & Pricing', p: 'All prices are listed in INR and inclusive of applicable taxes. Auverra reserves the right to correct pricing errors and cancel affected orders, in which case any amount collected will be handled per our Exchange & Refund Policy.' },
   { h: 'Payment', p: 'We accept payment via the methods enabled at checkout (cards, UPI, netbanking, PayPal, bank transfer, or cash on delivery where available). Orders are confirmed only after successful payment authorization.' },
   { h: 'Limited Editions', p: 'Limited edition and made-to-order pieces are non-cancellable once production begins, except as required by law.' },
   { h: 'Intellectual Property', p: 'All designs, imagery, and content on this site are the property of Auverra Watches and may not be reproduced without written consent.' },

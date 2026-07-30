@@ -13,13 +13,12 @@ export default function CartPage() {
   const [coupon, setCoupon] = useState('')
   const [appliedCode, setAppliedCode] = useState(null)
   const [discount, setDiscount] = useState(0)
-  const [placing, setPlacing] = useState(false)
   const [applying, setApplying] = useState(false)
   const router = useRouter()
 
   const subtotal = cart?.reduce((s, i) => s + i.price * i.quantity, 0) || 0
-  const shipping = subtotal > 500000 ? 0 : subtotal > 0 ? 2500 : 0
-  const tax = Math.round(subtotal * 0.03)
+  const shipping = 0
+  const tax = 0
   const total = subtotal + shipping + tax - discount
 
   const applyCoupon = async () => {
@@ -36,16 +35,10 @@ export default function CartPage() {
     setApplying(false)
   }
 
-  const checkout = async () => {
+  const goToCheckout = () => {
     if (!user) { router.push('/login?redirect=/cart'); return }
     if (cart.length === 0) return
-    setPlacing(true)
-    const shippingInfo = { name: user.name || user.email, email: user.email, address: 'To be entered at checkout', city: '-', country: 'India' }
-    const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart, shipping: shippingInfo, subtotal, shippingCost: shipping, tax, total, paymentMethod: 'cod', couponCode: appliedCode, discount }) })
-    const data = await res.json()
-    setPlacing(false)
-    if (data.order) { toast.success('Order placed! Order ID: ' + data.order.orderId); router.push('/account/orders') }
-    else toast.error(data.error || 'Failed to place order')
+    router.push(`/checkout?coupon=${appliedCode || ''}&discount=${discount}`)
   }
 
   return (
@@ -103,8 +96,8 @@ export default function CartPage() {
                   <h3 className="font-serif text-2xl text-gold mb-6">Order Summary</h3>
                   <div className="space-y-3 text-sm mb-6">
                     <div className="flex justify-between"><span className="text-platinum-light/60">Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-platinum-light/60">Shipping</span><span>{shipping === 0 ? <span className="text-green-400">FREE</span> : `₹${shipping.toLocaleString('en-IN')}`}</span></div>
-                    <div className="flex justify-between"><span className="text-platinum-light/60">Tax (GST)</span><span>₹{tax.toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between"><span className="text-platinum-light/60">Shipping</span><span className="text-green-400">FREE</span></div>
+                    <div className="text-xs text-platinum-light/40">Price includes all taxes</div>
                     {discount > 0 && <div className="flex justify-between text-green-400"><span>Discount</span><span>-₹{discount.toLocaleString('en-IN')}</span></div>}
                   </div>
 
@@ -118,8 +111,8 @@ export default function CartPage() {
                     <span className="font-serif text-2xl text-gradient-gold">₹{total.toLocaleString('en-IN')}</span>
                   </div>
 
-                  <button onClick={checkout} disabled={placing} className="btn-gold w-full inline-flex items-center justify-center gap-2">
-                    {placing ? 'Placing Order...' : <>Proceed to Checkout <ArrowRight className="w-4 h-4" /></>}
+                  <button onClick={goToCheckout} className="btn-gold w-full inline-flex items-center justify-center gap-2">
+                    Proceed to Checkout <ArrowRight className="w-4 h-4" />
                   </button>
 
                   <div className="mt-6 space-y-2 text-xs text-platinum-light/60">

@@ -6,7 +6,7 @@ import { Navbar } from '@/components/navbar'
 import { useApp } from '@/app/providers'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Mail, Settings, Bell, Search, Percent, FileText, CreditCard, Truck, Palette, Watch, Star, X, Pencil, Trash2, Plus, Upload, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Mail, Settings, Bell, Search, Percent, FileText, CreditCard, Truck, Palette, Watch, Star, X, Pencil, Trash2, Plus, Upload, Loader2, MessageSquare, CheckCircle2, Image as ImageIcon } from 'lucide-react'
 
 const GATEWAYS = [
   { key: 'razorpay', name: 'Razorpay', desc: 'India’s leading payment gateway. Supports UPI, cards, netbanking.', fields: ['Key ID', 'Key Secret', 'Webhook Secret'] },
@@ -34,6 +34,68 @@ function Modal({ title, onClose, children }) {
 const inputCls = "w-full bg-obsidian-700 border border-gold/20 px-3 py-2 text-sm outline-none focus:border-gold text-platinum-light"
 const labelCls = "text-xs uppercase tracking-widest text-gold mb-1 block"
 
+function ReviewsTab({ reviews, refreshAll }) {
+  const [uploading, setUploading] = useState(false)
+
+  const handleFiles = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading(true)
+    const supabase = createClient()
+    for (const file of files) {
+      const path = `reviews/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.\-]+/g, '-')}`
+      const { error } = await supabase.storage.from('review-screenshots').upload(path, file, { upsert: false })
+      if (error) { toast.error(`Failed to upload ${file.name}: ${error.message}`); continue }
+      const { data } = supabase.storage.from('review-screenshots').getPublicUrl(path)
+      await fetch('/api/admin/whatsapp-reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageUrl: data.publicUrl }) })
+    }
+    setUploading(false)
+    e.target.value = ''
+    toast.success('Review screenshot(s) uploaded')
+    refreshAll()
+  }
+
+  const togglePublish = async (r) => {
+    await fetch(`/api/admin/whatsapp-reviews/${r._id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ published: !r.published }) })
+    refreshAll()
+  }
+  const remove = async (id) => {
+    if (!confirm('Delete this review screenshot?')) return
+    await fetch(`/api/admin/whatsapp-reviews/${id}`, { method: 'DELETE' })
+    toast.success('Deleted'); refreshAll()
+  }
+
+  return (
+    <div className="glass border border-gold/10 rounded-sm p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="font-serif text-lg text-gold">Customer Review Screenshots</h3>
+          <p className="text-xs text-platinum-light/50 mt-1">Upload real WhatsApp screenshots from customers — they'll show on the homepage's review section. Unpublish to hide without deleting.</p>
+        </div>
+        <label className="btn-gold text-xs inline-flex items-center gap-2 cursor-pointer">
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />} Upload Screenshots
+          <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} disabled={uploading} />
+        </label>
+      </div>
+      {reviews.length === 0 ? (
+        <div className="text-center py-12 text-platinum-light/40 text-sm">No review screenshots uploaded yet.</div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {reviews.map(r => (
+            <div key={r._id} className="relative group">
+              <img src={r.imageUrl} alt="" className={`w-full aspect-[9/16] object-cover rounded-sm border ${r.published ? 'border-gold/20' : 'border-red-500/40 opacity-40'}`} />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex flex-col items-center justify-center gap-2">
+                <button onClick={() => togglePublish(r)} className="text-[10px] uppercase tracking-widest bg-obsidian-900 border border-gold/30 text-gold px-2 py-1 rounded-sm">{r.published ? 'Unpublish' : 'Publish'}</button>
+                <button onClick={() => remove(r._id)} className="text-[10px] uppercase tracking-widest bg-red-900/60 border border-red-500/40 text-red-300 px-2 py-1 rounded-sm">Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { user, loading, setUser } = useApp() || {}
   const [stats, setStats] = useState(null)
@@ -42,6 +104,7 @@ export default function AdminPage() {
   const [coupons, setCoupons] = useState([])
   const [posts, setPosts] = useState([])
   const [gateways, setGateways] = useState({})
+  const [reviews, setReviews] = useState([])
   const [tab, setTab] = useState('dashboard')
   const [productModal, setProductModal] = useState(null) // null | {} | product
   const [couponModal, setCouponModal] = useState(null)
@@ -62,6 +125,7 @@ export default function AdminPage() {
     fetch('/api/admin/coupons').then(r => r.json()).then(d => setCoupons(d.items || []))
     fetch('/api/admin/blog').then(r => r.json()).then(d => setPosts(d.items || []))
     fetch('/api/admin/payments').then(r => r.json()).then(d => setGateways(d.gateways || {}))
+    fetch('/api/admin/whatsapp-reviews').then(r => r.json()).then(d => setReviews(d.items || []))
   }
 
   useEffect(() => { if (user?.role === 'admin') refreshAll() }, [user])
@@ -72,6 +136,7 @@ export default function AdminPage() {
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { key: 'products', label: 'Products', icon: Watch },
     { key: 'orders', label: 'Orders', icon: ShoppingCart },
+    { key: 'reviews', label: 'Reviews', icon: MessageSquare },
     { key: 'coupons', label: 'Coupons', icon: Percent },
     { key: 'blog', label: 'Blog', icon: FileText },
     { key: 'payments', label: 'Payments', icon: CreditCard },
@@ -102,6 +167,10 @@ export default function AdminPage() {
   const updateOrderStatus = async (orderId, status) => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
     if (res.ok) { toast.success('Order status updated'); refreshAll() } else toast.error('Failed to update')
+  }
+  const approvePayment = async (orderId) => {
+    const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentStatus: 'verified' }) })
+    if (res.ok) { toast.success('Payment approved — order confirmed, customer emailed'); refreshAll() } else toast.error('Failed to approve payment')
   }
 
   // ---- Coupon CRUD ----
@@ -317,9 +386,25 @@ export default function AdminPage() {
                           ))}
                         </div>
                         {o.shipping && (
-                          <div className="mt-4 pt-4 border-t border-gold/10 text-xs text-platinum-light/60 max-w-2xl">
-                            <span className="text-gold uppercase tracking-widest mr-2">Ship to:</span>
-                            {o.shipping.name}, {o.shipping.address}, {o.shipping.city}, {o.shipping.country}
+                          <div className="mt-4 pt-4 border-t border-gold/10 text-xs text-platinum-light/60 max-w-2xl space-y-1">
+                            <div><span className="text-gold uppercase tracking-widest mr-2">Ship to:</span>{o.shipping.name}, {o.shipping.address}, {o.shipping.city}, {o.shipping.state} {o.shipping.postalCode}, {o.shipping.country}</div>
+                            {o.shipping.phone && <div><span className="text-gold uppercase tracking-widest mr-2">Phone:</span>{o.shipping.phone}</div>}
+                            {o.shipping.codConfirmationUtr && <div><span className="text-gold uppercase tracking-widest mr-2">COD UTR:</span>{o.shipping.codConfirmationUtr} <span className="text-platinum-light/40">(₹{o.shipping.codConfirmationFee} confirmation fee)</span></div>}
+                          </div>
+                        )}
+                        {o.shipping?.codPaymentScreenshotUrl && (
+                          <div className="mt-4 pt-4 border-t border-gold/10 flex items-center gap-4">
+                            <a href={o.shipping.codPaymentScreenshotUrl} target="_blank" rel="noopener noreferrer" className="block">
+                              <img src={o.shipping.codPaymentScreenshotUrl} alt="Payment proof" className="w-20 h-20 object-cover border border-gold/20 rounded-sm hover:border-gold transition" />
+                            </a>
+                            <div className="text-xs text-platinum-light/50">
+                              <div className="mb-2">Payment screenshot submitted{o.paymentStatus === 'verified' ? ' — verified ✅' : ''}</div>
+                              {o.paymentStatus !== 'verified' && (
+                                <button onClick={e => { e.stopPropagation(); approvePayment(o.orderId) }} className="inline-flex items-center gap-1.5 bg-green-600/20 border border-green-500/40 text-green-400 px-3 py-1.5 rounded-sm hover:bg-green-600/30 transition text-[11px] uppercase tracking-widest">
+                                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve Payment & Confirm Order
+                                </button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -329,6 +414,8 @@ export default function AdminPage() {
               )}
             </div>
           )}
+
+          {tab === 'reviews' && <ReviewsTab reviews={reviews} refreshAll={refreshAll} />}
 
           {tab === 'coupons' && (
             <div className="glass border border-gold/10 rounded-sm p-6">

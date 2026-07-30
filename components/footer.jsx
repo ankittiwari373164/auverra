@@ -18,10 +18,10 @@ export function Footer() {
           <a href={WHATSAPP_JOIN_LINK} target="_blank" rel="noopener noreferrer" className="btn-gold inline-flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Join Our WhatsApp Community</a>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pt-12 border-t border-gold/10">
-          <div className="col-span-2 md:col-span-1">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10 pt-12 border-t border-gold/10">
+          <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo.png" alt="Auverra Watches" className="w-9 h-9" />
+              <img src="/logo.svg" alt="Auverra Watches" className="w-9 h-9" />
               <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</div>
             </div>
             <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry. Since 1897.</p>
@@ -59,6 +59,24 @@ export function Footer() {
               <li><Link href="/boutiques" className="hover:text-gold transition">Boutiques</Link></li>
               <li><Link href="/privacy" className="hover:text-gold transition">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-gold transition">Terms & Conditions</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-serif text-gold mb-4 text-sm uppercase tracking-[0.2em]">Shop by City</h4>
+            <ul className="space-y-3 text-sm text-platinum-light/60">
+              {['Mumbai', 'Delhi', 'Bangalore', 'Pune', 'Hyderabad', 'Chandigarh'].map(c => (
+                <li key={c}><Link href="/shop" className="hover:text-gold transition">Watches in {c}</Link></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-serif text-gold mb-4 text-sm uppercase tracking-[0.2em]">Shop by Price</h4>
+            <ul className="space-y-3 text-sm text-platinum-light/60">
+              <li><Link href="/shop?maxPrice=2000" className="hover:text-gold transition">Under ₹2,000</Link></li>
+              <li><Link href="/shop?maxPrice=5000" className="hover:text-gold transition">Under ₹5,000</Link></li>
+              <li><Link href="/shop?maxPrice=10000" className="hover:text-gold transition">Under ₹10,000</Link></li>
+              <li><Link href="/shop?maxPrice=20000" className="hover:text-gold transition">Under ₹20,000</Link></li>
+              <li><Link href="/shop?category=ladies" className="hover:text-gold transition">Watches for Women</Link></li>
             </ul>
           </div>
         </div>

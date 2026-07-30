@@ -5,7 +5,7 @@ import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
 import { useApp } from '@/app/providers'
 import { toast } from 'sonner'
-import { Heart, ShoppingBag, Truck, Shield, RotateCcw, Award, Minus, Plus, Star, Check } from 'lucide-react'
+import { Heart, ShoppingBag, Truck, Shield, RotateCcw, Award, Minus, Plus, Star, Check, MessageCircle, Lock, ThumbsUp } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ProductDetailPage({ params }) {
@@ -22,6 +22,20 @@ export default function ProductDetailPage({ params }) {
   const [addingReview, setAddingReview] = useState(false)
   const [reviewData, setReviewData] = useState({ rating: 5, title: '', comment: '' })
   const { addToCart, toggleWishlist, wishlist, user } = useApp() || {}
+  const [viewerCount, setViewerCount] = useState(null)
+
+  useEffect(() => {
+    // Stable-ish "people viewing" count seeded from the slug so it doesn't jump
+    // around on every render, with a small periodic drift for realism.
+    let seed = 0
+    for (const c of slug) seed = (seed * 31 + c.charCodeAt(0)) % 1000
+    const base = 8 + (seed % 33) // 8–40
+    setViewerCount(base)
+    const interval = setInterval(() => {
+      setViewerCount(v => Math.max(6, Math.min(45, v + (Math.random() > 0.5 ? 1 : -1))))
+    }, 8000)
+    return () => clearInterval(interval)
+  }, [slug])
 
   useEffect(() => {
     fetch(`/api/products/${slug}`).then(r => r.json()).then(d => {
@@ -145,17 +159,30 @@ export default function ProductDetailPage({ params }) {
                 </div>
               </div>
 
-              <div className="flex gap-3 mb-8">
+              {viewerCount != null && (
+                <div className="inline-flex items-center gap-2 mb-6 px-3 py-1.5 bg-gold/10 border border-gold/20 text-xs text-gold rounded-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> {viewerCount} people are viewing this product
+                </div>
+              )}
+
+              <div className="flex gap-3 mb-3">
                 <button onClick={handleAdd} className={`btn-gold flex-1 inline-flex items-center justify-center gap-2 ${colors.length > 1 && selectedDial == null ? 'opacity-60' : ''}`}><ShoppingBag className="w-4 h-4" /> Add to Bag</button>
                 <button onClick={() => toggleWishlist?.(product)} className={`w-14 h-14 border ${inWishlist ? 'bg-gold border-gold text-obsidian' : 'border-gold/40 text-gold hover:bg-gold/10'} flex items-center justify-center transition`}><Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} /></button>
               </div>
+              <a
+                href={`https://wa.me/912249001897?text=${encodeURIComponent(`Hi Auverra Watches! I'm interested in the ${product.name}${activeColor ? ` (${activeColor.name})` : ''} — ₹${displayPrice.toLocaleString('en-IN')}. Is it available?`)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="mb-8 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-bold py-3.5 rounded-sm inline-flex items-center justify-center gap-2 transition"
+              >
+                <MessageCircle className="w-4 h-4" /> Order on WhatsApp
+              </a>
 
               <div className="grid grid-cols-2 gap-3 pt-8 border-t border-gold/10">
                 {[
-                  { icon: Truck, label: 'Free Insured Delivery' },
-                  { icon: RotateCcw, label: 'Exchange on Damage/Defect' },
-                  { icon: Award, label: 'Authenticity Certificate' },
-                  { icon: Shield, label: 'Cash on Delivery Available' },
+                  { icon: Truck, label: 'Fast & Free Shipping' },
+                  { icon: RotateCcw, label: 'Easy Exchange on Defect' },
+                  { icon: Lock, label: 'Secure Checkout' },
+                  { icon: ThumbsUp, label: 'Satisfaction Guaranteed' },
                 ].map(({ icon: Icon, label }, i) => (
                   <div key={i} className="flex items-center gap-3 text-sm text-platinum-light/70">
                     <Icon className="w-4 h-4 text-gold" /> {label}

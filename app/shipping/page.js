@@ -4,7 +4,7 @@ import { Footer } from '@/components/footer'
 import { Truck, ShieldCheck, Clock, Globe } from 'lucide-react'
 
 const ITEMS = [
-  { icon: Truck, t: 'Free Insured Delivery', d: 'Complimentary fully-insured shipping on all orders above ₹5,00,000. Orders below ship for a flat ₹2,500.' },
+  { icon: Truck, t: 'Free Insured Delivery', d: 'Free, fully-insured shipping on every order, no minimum. All listed prices are inclusive of taxes — the price you see is the price you pay (plus COD charges if applicable).' },
   { icon: Clock, t: 'Dispatch Timelines', d: 'In-stock pieces ship within 2 business days. We dispatch only after your final order confirmation.' },
   { icon: Globe, t: 'Domestic & International', d: 'We currently ship across India via secure courier, and internationally to select countries on request — contact us for a quote.' },
   { icon: ShieldCheck, t: 'Signature Required', d: 'Every Auverra shipment requires an adult signature on delivery and travels in a tamper-evident, GPS-tracked case.' },

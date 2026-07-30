@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { PRODUCTS, CATEGORIES, COLLECTIONS, TESTIMONIALS } from '@/lib/seed-data'
+import { sendEmail, orderConfirmedEmailHtml } from '@/lib/email'
 
 const ADMIN_EMAILS = ['admin@auverra.com']
 const db = supabaseAdmin // service role client — bypasses RLS, used for all server-side data access
@@ -364,16 +365,41 @@ async function handle(request, { params }) {
       const user = await getUser()
       if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('orders').select('*').order('created_at', { ascending: false })
-      return NextResponse.json({ items: (data || []).map(orderToApi) })
+      const items = await Promise.all((data || []).map(async (row) => {
+        const api = orderToApi(row)
+        const path = api.shipping?.codPaymentScreenshotPath
+        if (path) {
+          const { data: signed } = await db.storage.from('payment-proofs').createSignedUrl(path, 3600)
+          if (signed?.signedUrl) api.shipping.codPaymentScreenshotUrl = signed.signedUrl
+        }
+        return api
+      }))
+      return NextResponse.json({ items })
     }
     if (path[0] === 'admin' && path[1] === 'orders' && path[2] && method === 'PUT') {
       const user = await getUser()
       if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
+      const { data: existing } = await db.from('orders').select('*').eq('order_id', path[2]).maybeSingle()
       const row = {}
       if (body.status) row.status = body.status
       if (body.paymentStatus) row.payment_status = body.paymentStatus
       await db.from('orders').update(row).eq('order_id', path[2])
+
+      // Approving a pending COD confirmation payment: bump the order to
+      // "confirmed" and email the customer, but only once (avoid duplicate
+      // emails if this endpoint is called again).
+      if (body.paymentStatus === 'verified' && existing && existing.payment_status !== 'verified' && existing.email) {
+        if (!body.status) await db.from('orders').update({ status: 'confirmed' }).eq('order_id', path[2])
+        const { data: fresh } = await db.from('orders').select('*').eq('order_id', path[2]).maybeSingle()
+        if (fresh) {
+          await sendEmail({
+            to: fresh.email,
+            subject: `Your Auverra Watches order ${fresh.order_id} is confirmed`,
+            html: orderConfirmedEmailHtml(orderToApi(fresh)),
+          })
+        }
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -497,6 +523,45 @@ async function handle(request, { params }) {
       const gateways = {}
       for (const row of data || []) gateways[row.gateway] = { enabled: row.enabled, mode: row.mode, fields: row.fields }
       return NextResponse.json({ ok: true, gateways })
+    }
+
+    // WhatsApp review screenshots — public
+    if (route === 'whatsapp-reviews' && method === 'GET') {
+      const { data } = await db.from('whatsapp_reviews').select('*').eq('published', true).order('sort_order', { ascending: true }).order('created_at', { ascending: false })
+      return NextResponse.json({ items: (data || []).map(r => ({ _id: r.id, imageUrl: r.image_url, caption: r.caption })) })
+    }
+    // WhatsApp review screenshots — admin CRUD
+    if (route === 'admin/whatsapp-reviews' && method === 'GET') {
+      const user = await getUser()
+      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const { data } = await db.from('whatsapp_reviews').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false })
+      return NextResponse.json({ items: (data || []).map(r => ({ _id: r.id, imageUrl: r.image_url, caption: r.caption, published: r.published, sortOrder: r.sort_order })) })
+    }
+    if (route === 'admin/whatsapp-reviews' && method === 'POST') {
+      const user = await getUser()
+      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const body = await request.json()
+      if (!body.imageUrl) return NextResponse.json({ error: 'imageUrl required' }, { status: 400 })
+      const { data, error } = await db.from('whatsapp_reviews').insert({ image_url: body.imageUrl, caption: body.caption || '', published: body.published !== false, sort_order: body.sortOrder || 0 }).select().single()
+      if (error) throw error
+      return NextResponse.json({ item: { _id: data.id } })
+    }
+    if (path[0] === 'admin' && path[1] === 'whatsapp-reviews' && path[2] && method === 'PUT') {
+      const user = await getUser()
+      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      const body = await request.json()
+      const row = {}
+      if (body.caption !== undefined) row.caption = body.caption
+      if (body.published !== undefined) row.published = body.published
+      if (body.sortOrder !== undefined) row.sort_order = body.sortOrder
+      await db.from('whatsapp_reviews').update(row).eq('id', path[2])
+      return NextResponse.json({ ok: true })
+    }
+    if (path[0] === 'admin' && path[1] === 'whatsapp-reviews' && path[2] && method === 'DELETE') {
+      const user = await getUser()
+      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      await db.from('whatsapp_reviews').delete().eq('id', path[2])
+      return NextResponse.json({ ok: true })
     }
 
     // Addresses

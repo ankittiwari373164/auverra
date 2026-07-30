@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
+import { WhatsAppReviews } from '@/components/whatsapp-reviews'
 import { ArrowRight, Award, Sparkles, Shield, Truck, Star, ChevronRight } from 'lucide-react'
 
 export default function HomePage() {
@@ -260,6 +261,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <WhatsAppReviews />
 
       {/* CTA */}
       <section className="py-24 md:py-32 relative">
