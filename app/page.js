@@ -5,7 +5,7 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
 import { WhatsAppReviews } from '@/components/whatsapp-reviews'
-import { ArrowRight, Award, Sparkles, Shield, Truck, Star, ChevronRight } from 'lucide-react'
+import { ArrowRight, Award, Sparkles, Shield, Truck, Star, ChevronRight, ChevronLeft } from 'lucide-react'
 
 export default function HomePage() {
   const [featured, setFeatured] = useState([])
@@ -13,6 +13,7 @@ export default function HomePage() {
   const [newArrivals, setNewArrivals] = useState([])
   const [collections, setCollections] = useState([])
   const [testimonials, setTestimonials] = useState([])
+  const [testimonialPage, setTestimonialPage] = useState(0)
   const [scrollY, setScrollY] = useState(0)
   const heroRef = useRef(null)
   const tiltRef = useRef(null)
@@ -25,8 +26,15 @@ export default function HomePage() {
       fetch('/api/products/new').then(r => r.json()),
       fetch('/api/collections').then(r => r.json()),
       fetch('/api/testimonials').then(r => r.json()),
-    ]).then(([f, b, n, c, t]) => {
-      setFeatured(f.items || []); setBestSellers(b.items || []); setNewArrivals(n.items || [])
+    ]).then(async ([f, b, n, c, t]) => {
+      let featuredItems = f.items || []
+      if (featuredItems.length === 0) {
+        // No products marked "Featured" in admin yet — fall back to the
+        // general catalog so this section is never empty.
+        const all = await fetch('/api/products?sort=newest').then(r => r.json())
+        featuredItems = (all.items || []).slice(0, 6)
+      }
+      setFeatured(featuredItems); setBestSellers(b.items || []); setNewArrivals(n.items || [])
       setCollections(c.items || []); setTestimonials(t.items || [])
     })
     const onScroll = () => setScrollY(window.scrollY)
@@ -244,20 +252,39 @@ export default function HomePage() {
             <span className="text-[10px] uppercase tracking-[0.4em] text-gold mb-4 block">Whispered in the Circle</span>
             <h2 className="text-4xl md:text-5xl font-serif text-gradient-gold">From Our Collectors</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
-            {testimonials.map((t, i) => (
-              <div key={i} className="glass p-8 md:p-10 rounded-sm luxury-card">
-                <div className="flex gap-1 mb-5">{[...Array(t.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-gold text-gold" />)}</div>
-                <p className="font-serif text-xl md:text-2xl italic text-platinum-light/90 leading-relaxed mb-6">“{t.text}”</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-obsidian font-serif text-lg">{t.name[0]}</div>
-                  <div>
-                    <div className="font-serif text-platinum-light">{t.name}</div>
-                    <div className="text-xs text-platinum-light/50">{t.title}</div>
+          <div className="relative">
+            <div className="overflow-hidden">
+              <div className="flex transition-transform duration-500 ease-out" style={{ transform: `translateX(-${testimonialPage * 100}%)` }}>
+                {Array.from({ length: Math.ceil(testimonials.length / 2) }).map((_, page) => (
+                  <div key={page} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 flex-shrink-0 w-full">
+                    {testimonials.slice(page * 2, page * 2 + 2).map((t, i) => (
+                      <div key={i} className="glass p-8 md:p-10 rounded-sm luxury-card">
+                        <div className="flex gap-1 mb-5">{[...Array(t.rating)].map((_, i) => <Star key={i} className="w-4 h-4 fill-gold text-gold" />)}</div>
+                        <p className="font-serif text-xl md:text-2xl italic text-platinum-light/90 leading-relaxed mb-6">“{t.text}”</p>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center text-obsidian font-serif text-lg">{t.name[0]}</div>
+                          <div>
+                            <div className="font-serif text-platinum-light">{t.name}</div>
+                            <div className="text-xs text-platinum-light/50">{t.title}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
+            </div>
+            {testimonials.length > 2 && (
+              <div className="flex items-center justify-center gap-6 mt-10">
+                <button onClick={() => setTestimonialPage(p => Math.max(0, p - 1))} disabled={testimonialPage === 0} className="w-10 h-10 border border-gold/30 rounded-full flex items-center justify-center text-gold hover:bg-gold/10 disabled:opacity-30 transition"><ChevronLeft className="w-4 h-4" /></button>
+                <div className="flex gap-2">
+                  {Array.from({ length: Math.ceil(testimonials.length / 2) }).map((_, page) => (
+                    <button key={page} onClick={() => setTestimonialPage(page)} className={`w-2 h-2 rounded-full transition ${testimonialPage === page ? 'bg-gold w-6' : 'bg-gold/30'}`} />
+                  ))}
+                </div>
+                <button onClick={() => setTestimonialPage(p => Math.min(Math.ceil(testimonials.length / 2) - 1, p + 1))} disabled={testimonialPage >= Math.ceil(testimonials.length / 2) - 1} className="w-10 h-10 border border-gold/30 rounded-full flex items-center justify-center text-gold hover:bg-gold/10 disabled:opacity-30 transition"><ChevronRight className="w-4 h-4" /></button>
+              </div>
+            )}
           </div>
         </div>
       </section>
