@@ -87,12 +87,10 @@ export default function HomePage() {
               <Link href="/shop?collection=celestial" className="btn-outline-gold">Céleste Tourbillon</Link>
             </div>
             <div className="flex flex-wrap gap-8">
-              {[{ n: '128+', l: 'Years Heritage' }, { n: '4.9★', l: 'Collector Rating' }, { n: '40k+', l: 'Timepieces Delivered' }].map((s, i) => (
-                <div key={i}>
-                  <div className="text-2xl font-serif text-gradient-gold">{s.n}</div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-platinum-light/50 mt-1">{s.l}</div>
-                </div>
-              ))}
+              <div>
+                <div className="text-2xl font-serif text-gradient-gold">4.9★</div>
+                <div className="text-[10px] uppercase tracking-[0.25em] text-platinum-light/50 mt-1">Collector Rating</div>
+              </div>
             </div>
           </div>
 
@@ -166,24 +164,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* COLLECTIONS SHOWCASE */}
+      {/* SHOP BY: MEN / WOMEN / AUTOMATIC */}
       <section className="py-24 md:py-32 relative bg-gradient-to-b from-obsidian to-obsidian-900 section-tint">
         <div className="container-lux">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-16">
             <div>
-              <span className="text-[10px] uppercase tracking-[0.4em] text-gold mb-4 block">Signature Collections</span>
-              <h2 className="text-4xl md:text-6xl font-serif text-platinum-light">Curated <span className="text-gradient-gold italic">Universes</span></h2>
+              <span className="text-[10px] uppercase tracking-[0.4em] text-gold mb-4 block">Shop the Collection</span>
+              <h2 className="text-4xl md:text-6xl font-serif text-platinum-light">Curated <span className="text-gradient-gold italic">For You</span></h2>
             </div>
-            <p className="text-platinum-light/50 max-w-md mt-4 md:mt-0">Three distinct expressions of horological artistry.</p>
+            <p className="text-platinum-light/50 max-w-md mt-4 md:mt-0">Find exactly what you're looking for.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {collections.map((c, i) => (
-              <Link key={c.slug} href={`/shop?collection=${c.slug}`} className="group relative aspect-[3/4] overflow-hidden luxury-card rounded-sm on-image">
-                <img src={c.image + '?auto=format&fit=crop&w=800&q=85'} alt={c.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110" />
+            {[
+              { label: 'Men', tagline: 'Bold, precise, built to last', href: '/shop', image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d' },
+              { label: 'Women', tagline: 'Elegant timepieces for every moment', href: '/shop?category=ladies', image: 'https://images.unsplash.com/photo-1548171915-e79a380a2a4b' },
+              { label: 'Automatic', tagline: 'No battery, just craftsmanship', href: '/shop?search=automatic', image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa' },
+            ].map((c, i) => (
+              <Link key={c.label} href={c.href} className="group relative aspect-[3/4] overflow-hidden luxury-card rounded-sm on-image">
+                <img src={c.image + '?auto=format&fit=crop&w=800&q=85'} alt={c.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent" />
                 <div className="absolute inset-0 p-8 flex flex-col justify-end">
-                  <span className="text-[10px] uppercase tracking-[0.4em] text-gold mb-3">Collection {String(i+1).padStart(2, '0')}</span>
-                  <h3 className="text-3xl md:text-4xl font-serif text-platinum-light mb-2">{c.name}</h3>
+                  <span className="text-[10px] uppercase tracking-[0.4em] text-gold mb-3">Shop {String(i+1).padStart(2, '0')}</span>
+                  <h3 className="text-3xl md:text-4xl font-serif text-platinum-light mb-2">{c.label}</h3>
                   <p className="text-platinum-light/70 italic mb-4">{c.tagline}</p>
                   <div className="inline-flex items-center gap-2 text-gold text-xs uppercase tracking-[0.25em] group-hover:gap-4 transition-all">Discover <ArrowRight className="w-4 h-4" /></div>
                 </div>
