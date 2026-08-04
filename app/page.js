@@ -59,7 +59,7 @@ export default function HomePage() {
       {/* HERO */}
       <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden on-image">
         <div className="absolute inset-0 z-0">
-          <img src="/watche.jpg" alt="" className="w-full h-full object-cover" style={{ transform: `translateY(${scrollY * 0.4}px) scale(${1 + scrollY * 0.0003})`, filter: 'brightness(0.4) contrast(1.15)' }} />
+          <img src="/watch.jpg" alt="" className="w-full h-full object-cover" style={{ transform: `translateY(${scrollY * 0.4}px) scale(${1 + scrollY * 0.0003})`, filter: 'brightness(0.4) contrast(1.15)' }} />
           <div className="absolute inset-0 bg-gradient-to-b from-obsidian/80 via-obsidian/50 to-obsidian" />
           <div className="absolute inset-0 bg-gradient-to-r from-obsidian via-obsidian/30 to-transparent" />
           <div className="glow-orb w-[500px] h-[500px] -top-40 -right-40 bg-gold/10" />
