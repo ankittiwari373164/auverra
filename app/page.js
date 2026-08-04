@@ -108,7 +108,7 @@ export default function HomePage() {
                 className={tilt.rx === 0 && tilt.ry === 0 ? 'tilt-3d tilt-3d-reset absolute inset-10 rounded-full overflow-hidden border border-gold/30 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]' : 'tilt-3d absolute inset-10 rounded-full overflow-hidden border border-gold/30 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]'}
                 style={{ '--rx': `${tilt.rx}deg`, '--ry': `${tilt.ry}deg` }}
               >
-                <img src="https://images.unsplash.com/photo-1600003014637-ff82a275e191?auto=format&fit=crop&w=900&q=90" alt="Auverra Chronos Titanium" className="w-full h-full object-cover" />
+                <img src="/watches5.jpg" alt="Auverra Chronos Titanium" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-obsidian/40" />
               </div>
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 glass px-5 py-2 rounded-full border border-gold/20 whitespace-nowrap">
