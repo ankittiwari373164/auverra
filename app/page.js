@@ -127,9 +127,9 @@ export default function HomePage() {
       {/* MARQUEE / STATS BAR */}
       <section className="relative border-y border-gold/10 bg-obsidian-900/50 py-6 overflow-hidden">
         <div className="container-lux">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             {[
-              { icon: Award, label: '128 Years', sub: 'Of Heritage' },
+              
               { icon: Sparkles, label: 'In-House', sub: 'Movements' },
               { icon: Shield, label: 'Authenticity', sub: 'Certified Pieces' },
               { icon: Truck, label: 'Free Insured', sub: 'Global Delivery' },
