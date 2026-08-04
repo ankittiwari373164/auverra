@@ -22,7 +22,7 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <img src="/logo.png" alt="Auverra Watches" className="w-14 h-14" />
-              <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold">AUVERRA</div>
+              <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold"></div>
             </div>
             <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry. Since 1897.</p>
             <div className="flex gap-4 mt-6">
