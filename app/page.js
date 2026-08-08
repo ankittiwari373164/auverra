@@ -176,9 +176,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { label: 'Men', tagline: 'Bold, precise, built to last', href: '/shop', image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d' },
-              { label: 'Women', tagline: 'Elegant timepieces for every moment', href: '/shop?category=ladies', image: 'https://images.unsplash.com/photo-1548171915-e79a380a2a4b' },
-              { label: 'Automatic', tagline: 'No battery, just craftsmanship', href: '/shop?search=automatic', image: 'https://images.unsplash.com/photo-1547996160-81dfa63595aa' },
+              { label: 'Men', tagline: 'Bold, precise, built to last', href: '/shop', image: '/watches3.jpg' },
+              { label: 'Women', tagline: 'Elegant timepieces for every moment', href: '/shop?category=ladies', image: '/ladies.jpg' },
+              { label: 'Automatic', tagline: 'No battery, just craftsmanship', href: '/shop?search=automatic', image: '/watches2.jpg' },
             ].map((c, i) => (
               <Link key={c.label} href={c.href} className="group relative aspect-[3/4] overflow-hidden luxury-card rounded-sm on-image">
                 <img src={c.image + '?auto=format&fit=crop&w=800&q=85'} alt={c.label} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-110" />
@@ -198,7 +198,7 @@ export default function HomePage() {
       {/* CRAFTSMANSHIP PARALLAX */}
       <section className="relative py-32 md:py-48 overflow-hidden on-image">
         <div className="absolute -inset-y-32 inset-x-0 overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1568154106189-717dc85b0a3b?auto=format&fit=crop&w=2400&q=85" alt="" className="w-full h-full object-cover" style={{ transform: `translateY(${Math.max(-60, Math.min(60, (scrollY - 2000) * 0.08))}px)`, filter: 'brightness(0.35)' }} />
+          <img src="/watches4.jpg" alt="" className="w-full h-full object-cover" style={{ transform: `translateY(${Math.max(-60, Math.min(60, (scrollY - 2000) * 0.08))}px)`, filter: 'brightness(0.35)' }} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-obsidian via-obsidian/50 to-transparent" />
         <div className="container-lux relative z-10">
