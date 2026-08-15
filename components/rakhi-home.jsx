@@ -64,55 +64,21 @@ export function RakhiHome() {
       <Navbar />
 
       {/* HERO */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img src="/watch.jpg" alt="" className="w-full h-full object-cover" style={{ transform: `translateY(${scrollY * 0.4}px) scale(${1 + scrollY * 0.0003})`, filter: 'brightness(0.55) saturate(1.1)' }} />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(180deg, rgba(92,20,32,0.75) 0%, rgba(139,29,44,0.55) 50%, ${maroon} 100%)` }} />
-          <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, ${maroon} 0%, rgba(92,20,32,0.3) 40%, transparent 70%)` }} />
-        </div>
-
-        <div className="container-lux relative z-10 pt-32 pb-20 grid lg:grid-cols-2 gap-12 items-center">
-          <div className="max-w-2xl" style={{ transform: `translateY(${scrollY * -0.15}px)`, opacity: 1 - scrollY * 0.002 }}>
-            <div className="inline-flex items-center gap-2 bg-white/15 border border-white/30 rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.25em] mb-8 text-white">
-              <Sparkles className="w-3.5 h-3.5" style={{ color: gold }} /> Raksha Bandhan Special
-            </div>
-            <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-serif leading-[0.95] mb-8 text-white">
-              <span className="block">A Gift as Lasting</span>
-              <span className="block italic" style={{ color: gold }}>as Their Promise.</span>
-            </h1>
-            <p className="text-lg md:text-xl text-white/85 font-light leading-relaxed mb-10 max-w-xl">
-              This Rakhi, give your brother or sister a timepiece they'll wear every day — and remember every time they check it, for the bond time can't undo.
-            </p>
-            <div className="flex flex-wrap gap-4 mb-12">
-              <Link href="/shop" className="inline-flex items-center gap-3 px-8 py-4 rounded-sm font-bold text-sm uppercase tracking-widest transition hover:-translate-y-0.5" style={{ background: gold, color: maroon }}>
-                Shop Rakhi Gifts <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 rounded-sm font-bold text-sm uppercase tracking-widest border-2 border-white/70 text-white hover:bg-white/10 transition">
-                Ask Us on WhatsApp
-              </a>
-            </div>
-            <div className="flex flex-wrap gap-8">
-              <div>
-                <div className="text-2xl font-serif" style={{ color: gold }}>4.9★</div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-white/60 mt-1">Collector Rating</div>
-              </div>
-            </div>
+      <section className="relative pt-32 pb-20 overflow-hidden" style={{ background: `linear-gradient(160deg, ${rakhiRed} 0%, #b3452f 45%, #d97a3f 100%)` }}>
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div className="container-lux relative z-10 text-center max-w-2xl mx-auto text-white">
+          <div className="inline-flex items-center gap-2 bg-white/15 border border-white/30 rounded-full px-4 py-1.5 text-xs uppercase tracking-[0.25em] mb-6">
+            <Sparkles className="w-3.5 h-3.5" /> Raksha Bandhan Special
           </div>
-
-          {/* 3D tilt watch showcase */}
-          <div className="hidden lg:flex items-center justify-center perspective">
-            <div ref={tiltRef} onMouseMove={handleTiltMove} onMouseLeave={resetTilt} className="relative w-[420px] h-[420px]">
-              <div className="absolute inset-0 rounded-full opacity-70 blur-[2px]" style={{ background: `conic-gradient(from 0deg, ${gold}, ${rakhiRed}, ${gold})`, animation: 'spin 20s linear infinite' }} />
-              <div
-                className={tilt.rx === 0 && tilt.ry === 0 ? 'tilt-3d tilt-3d-reset absolute inset-10 rounded-full overflow-hidden border-4 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]' : 'tilt-3d absolute inset-10 rounded-full overflow-hidden border-4 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]'}
-                style={{ '--rx': `${tilt.rx}deg`, '--ry': `${tilt.ry}deg`, borderColor: gold }}
-              >
-                <img src="/watches5.jpg" alt="Rakhi Gift Watch" className="w-full h-full object-cover" />
-              </div>
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-white/95 px-5 py-2 rounded-full whitespace-nowrap shadow-lg">
-                <span className="text-[10px] uppercase tracking-[0.3em]" style={{ color: maroon }}>Rakhi Gift Edit</span>
-              </div>
-            </div>
+          <h1 className="text-5xl md:text-6xl font-serif mb-6 leading-tight">A Gift as Lasting<br /><span className="italic" style={{ color: gold }}>as Their Promise</span></h1>
+          <p className="text-white/85 text-lg leading-relaxed mb-10 max-w-xl mx-auto">This Rakhi, give your brother or sister a timepiece they'll wear every day and remember every time they check it — for the bond time can't undo.</p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href="/shop" className="inline-flex items-center gap-2 px-8 py-4 rounded-sm font-bold text-sm uppercase tracking-widest transition hover:-translate-y-0.5" style={{ background: gold, color: maroon }}>
+              Shop Rakhi Gifts <ArrowRight className="w-4 h-4" />
+            </Link>
+            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-8 py-4 rounded-sm font-bold text-sm uppercase tracking-widest border-2 border-white/70 text-white hover:bg-white/10 transition">
+              Ask Us on WhatsApp
+            </a>
           </div>
         </div>
       </section>
