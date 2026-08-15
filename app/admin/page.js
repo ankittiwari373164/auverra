@@ -15,7 +15,7 @@ const GATEWAYS = [
   { key: 'cod', name: 'Cash on Delivery', desc: 'Accept cash upon delivery. India only.', fields: [] },
   { key: 'bank', name: 'Bank Transfer', desc: 'Direct NEFT / RTGS / IMPS.', fields: ['Bank Name', 'Account Number', 'IFSC'] },
 ]
-const ORDER_STATUSES = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+const ORDER_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
 
 function Modal({ title, onClose, children }) {
   return (
@@ -171,6 +171,11 @@ export default function AdminPage() {
   const approvePayment = async (orderId) => {
     const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentStatus: 'verified' }) })
     if (res.ok) { toast.success('Payment approved — order confirmed, customer emailed'); refreshAll() } else toast.error('Failed to approve payment')
+  }
+  const rejectPayment = async (orderId) => {
+    if (!confirm('Reject this payment? The order will be cancelled and the customer notified by email.')) return
+    const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ paymentStatus: 'rejected' }) })
+    if (res.ok) { toast.success('Payment rejected — order cancelled, customer emailed'); refreshAll() } else toast.error('Failed to reject payment')
   }
 
   // ---- Coupon CRUD ----
@@ -389,20 +394,29 @@ export default function AdminPage() {
                           <div className="mt-4 pt-4 border-t border-gold/10 text-xs text-platinum-light/60 max-w-2xl space-y-1">
                             <div><span className="text-gold uppercase tracking-widest mr-2">Ship to:</span>{o.shipping.name}, {o.shipping.address}, {o.shipping.city}, {o.shipping.state} {o.shipping.postalCode}, {o.shipping.country}</div>
                             {o.shipping.phone && <div><span className="text-gold uppercase tracking-widest mr-2">Phone:</span>{o.shipping.phone}</div>}
-                            {o.shipping.codConfirmationUtr && <div><span className="text-gold uppercase tracking-widest mr-2">COD UTR:</span>{o.shipping.codConfirmationUtr} <span className="text-platinum-light/40">(₹{o.shipping.codConfirmationFee} confirmation fee)</span></div>}
+                            {o.shipping.upiUtr && <div><span className="text-gold uppercase tracking-widest mr-2">UPI UTR:</span>{o.shipping.upiUtr}</div>}
                           </div>
                         )}
-                        {o.shipping?.codPaymentScreenshotUrl && (
+                        {o.shipping?.upiPaymentScreenshotUrl && (
                           <div className="mt-4 pt-4 border-t border-gold/10 flex items-center gap-4">
-                            <a href={o.shipping.codPaymentScreenshotUrl} target="_blank" rel="noopener noreferrer" className="block">
-                              <img src={o.shipping.codPaymentScreenshotUrl} alt="Payment proof" className="w-20 h-20 object-cover border border-gold/20 rounded-sm hover:border-gold transition" />
+                            <a href={o.shipping.upiPaymentScreenshotUrl} target="_blank" rel="noopener noreferrer" className="block">
+                              <img src={o.shipping.upiPaymentScreenshotUrl} alt="Payment proof" className="w-20 h-20 object-cover border border-gold/20 rounded-sm hover:border-gold transition" />
                             </a>
                             <div className="text-xs text-platinum-light/50">
-                              <div className="mb-2">Payment screenshot submitted{o.paymentStatus === 'verified' ? ' — verified ✅' : ''}</div>
-                              {o.paymentStatus !== 'verified' && (
-                                <button onClick={e => { e.stopPropagation(); approvePayment(o.orderId) }} className="inline-flex items-center gap-1.5 bg-green-600/20 border border-green-500/40 text-green-400 px-3 py-1.5 rounded-sm hover:bg-green-600/30 transition text-[11px] uppercase tracking-widest">
-                                  <CheckCircle2 className="w-3.5 h-3.5" /> Approve Payment & Confirm Order
-                                </button>
+                              <div className="mb-2">
+                                Payment screenshot submitted
+                                {o.paymentStatus === 'verified' && <span className="text-green-400"> — verified ✅</span>}
+                                {o.paymentStatus === 'rejected' && <span className="text-red-400"> — rejected ✕</span>}
+                              </div>
+                              {o.paymentStatus !== 'verified' && o.paymentStatus !== 'rejected' && (
+                                <div className="flex gap-2">
+                                  <button onClick={e => { e.stopPropagation(); approvePayment(o.orderId) }} className="inline-flex items-center gap-1.5 bg-green-600/20 border border-green-500/40 text-green-400 px-3 py-1.5 rounded-sm hover:bg-green-600/30 transition text-[11px] uppercase tracking-widest">
+                                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Confirm
+                                  </button>
+                                  <button onClick={e => { e.stopPropagation(); rejectPayment(o.orderId) }} className="inline-flex items-center gap-1.5 bg-red-600/20 border border-red-500/40 text-red-400 px-3 py-1.5 rounded-sm hover:bg-red-600/30 transition text-[11px] uppercase tracking-widest">
+                                    <X className="w-3.5 h-3.5" /> Reject
+                                  </button>
+                                </div>
                               )}
                             </div>
                           </div>
@@ -541,13 +555,14 @@ function ProductModal({ product, onClose, onSave }) {
     slug: product.slug || '', name: product.name || '', tagline: product.tagline || '',
     price: product.price || '', compareAtPrice: product.compareAtPrice || '', stock: product.stock ?? '',
     category: product.category || 'chronograph', collection: product.collection || 'heritage',
-    description: product.description || '', images: product.images || [],
+    description: product.description || '', images: product.images || [], videos: product.videos || [],
     featured: !!product.featured, bestSeller: !!product.bestSeller, newArrival: !!product.newArrival,
     features: product.features?.length ? product.features : [''],
     specs: product.specs && Object.keys(product.specs).length ? Object.entries(product.specs).map(([key, value]) => ({ key, value })) : [{ key: '', value: '' }],
     colors: product.variants?.dial?.length ? product.variants.dial.map(d => ({ name: d.name, hex: d.hex || '#c9a961', price: d.price ?? '', compareAtPrice: d.compareAtPrice ?? '', images: d.images || [] })) : [],
   })
   const [uploading, setUploading] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
   const [uploadingColorIdx, setUploadingColorIdx] = useState(null)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -591,6 +606,27 @@ function ProductModal({ product, onClose, onSave }) {
     e.target.value = ''
   }
   const removeImage = (idx) => set('images', form.images.filter((_, i) => i !== idx))
+
+  // ---- video upload ----
+  const handleVideoFiles = async (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploadingVideo(true)
+    const supabase = createClient()
+    const uploaded = []
+    for (const file of files) {
+      if (file.size > 50 * 1024 * 1024) { toast.error(`${file.name} is over 50MB — please use a smaller clip`); continue }
+      const path = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${file.name.replace(/[^a-zA-Z0-9.\-]+/g, '-')}`
+      const { error } = await supabase.storage.from('product-videos').upload(path, file, { upsert: false })
+      if (error) { toast.error(`Failed to upload ${file.name}: ${error.message}`); continue }
+      const { data } = supabase.storage.from('product-videos').getPublicUrl(path)
+      uploaded.push(data.publicUrl)
+    }
+    if (uploaded.length) set('videos', [...form.videos, ...uploaded])
+    setUploadingVideo(false)
+    e.target.value = ''
+  }
+  const removeVideo = (idx) => set('videos', form.videos.filter((_, i) => i !== idx))
 
   // ---- dynamic list helpers ----
   const updateListItem = (key, idx, value) => set(key, form[key].map((it, i) => i === idx ? value : it))
@@ -657,6 +693,25 @@ function ProductModal({ product, onClose, onSave }) {
             </label>
           </div>
           <p className="text-[11px] text-platinum-light/40">Uploads go to your Supabase Storage bucket and are served from there — no external links needed.</p>
+        </div>
+
+        {/* Videos */}
+        <div>
+          <label className={labelCls}>Product Videos</label>
+          <div className="grid grid-cols-4 gap-3 mb-3">
+            {form.videos.map((url, i) => (
+              <div key={i} className="relative aspect-square rounded-sm overflow-hidden border border-gold/20 group bg-obsidian-700">
+                <video src={url} className="w-full h-full object-cover" muted />
+                <button type="button" onClick={() => removeVideo(i)} className="absolute top-1 right-1 w-6 h-6 bg-black/70 text-white flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
+            <label className="aspect-square rounded-sm border border-dashed border-gold/30 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-gold/60 hover:bg-gold/5 transition text-platinum-light/50">
+              {uploadingVideo ? <Loader2 className="w-5 h-5 animate-spin text-gold" /> : <Upload className="w-5 h-5" />}
+              <span className="text-[10px] uppercase tracking-widest">{uploadingVideo ? 'Uploading' : 'Upload'}</span>
+              <input type="file" accept="video/*" multiple className="hidden" onChange={handleVideoFiles} disabled={uploadingVideo} />
+            </label>
+          </div>
+          <p className="text-[11px] text-platinum-light/40">Short product clips (unboxing, wrist shots, close-ups). Max 50MB per video — these show in the product gallery alongside photos.</p>
         </div>
 
         {/* Colors (dial variants) — each color can have its own images and price */}

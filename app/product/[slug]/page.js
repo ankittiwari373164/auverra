@@ -5,7 +5,7 @@ import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
 import { useApp } from '@/app/providers'
 import { toast } from 'sonner'
-import { Heart, ShoppingBag, Truck, Shield, RotateCcw, Award, Minus, Plus, Star, Check, MessageCircle, Lock, ThumbsUp } from 'lucide-react'
+import { Heart, ShoppingBag, Truck, Shield, RotateCcw, Award, Minus, Plus, Star, Check, MessageCircle, Lock, ThumbsUp, Play } from 'lucide-react'
 import Link from 'next/link'
 
 export default function ProductDetailPage({ params }) {
@@ -54,6 +54,7 @@ export default function ProductDetailPage({ params }) {
   const colors = product.variants?.dial || []
   const activeColor = selectedDial != null ? colors[selectedDial] : null
   const galleryImages = activeColor?.images?.length ? activeColor.images : product.images
+  const galleryMedia = [...galleryImages.map(url => ({ type: 'image', url })), ...(product.videos || []).map(url => ({ type: 'video', url }))]
   const displayPrice = activeColor?.price ?? product.price
   const displayCompareAt = activeColor?.compareAtPrice ?? product.compareAtPrice
   const variant = {
@@ -95,13 +96,24 @@ export default function ProductDetailPage({ params }) {
               <div className="relative aspect-square overflow-hidden bg-gradient-to-b from-obsidian-700 to-obsidian-900 mb-4 group"
                 onMouseMove={e => { const r = e.currentTarget.getBoundingClientRect(); setZoom({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100, active: true }) }}
                 onMouseLeave={() => setZoom({ ...zoom, active: false })}>
-                <img src={galleryImages[selectedImage] + '?auto=format&fit=crop&w=1400&q=90'} alt={product.name} className="w-full h-full object-cover transition-transform duration-500" style={zoom.active ? { transform: `scale(2)`, transformOrigin: `${zoom.x}% ${zoom.y}%` } : {}} />
+                {galleryMedia[selectedImage]?.type === 'video' ? (
+                  <video src={galleryMedia[selectedImage].url} className="w-full h-full object-cover" controls autoPlay loop muted playsInline />
+                ) : (
+                  <img src={galleryMedia[selectedImage]?.url + '?auto=format&fit=crop&w=1400&q=90'} alt={product.name} className="w-full h-full object-cover transition-transform duration-500" style={zoom.active ? { transform: `scale(2)`, transformOrigin: `${zoom.x}% ${zoom.y}%` } : {}} />
+                )}
                 {product.badges?.map((b, i) => <div key={i} className="absolute top-6 left-6 px-3 py-1 bg-gold text-obsidian text-[10px] uppercase tracking-[0.2em] font-bold">{b}</div>)}
               </div>
               <div className="grid grid-cols-4 gap-3">
-                {galleryImages.map((img, i) => (
+                {galleryMedia.map((m, i) => (
                   <button key={i} onClick={() => setSelectedImage(i)} className={`relative aspect-square overflow-hidden border-2 transition ${selectedImage === i ? 'border-gold' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                    <img src={img + '?auto=format&fit=crop&w=300&q=80'} alt="" className="w-full h-full object-cover" />
+                    {m.type === 'video' ? (
+                      <>
+                        <video src={m.url} className="w-full h-full object-cover" muted />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30"><Play className="w-5 h-5 text-white fill-white" /></div>
+                      </>
+                    ) : (
+                      <img src={m.url + '?auto=format&fit=crop&w=300&q=80'} alt="" className="w-full h-full object-cover" />
+                    )}
                   </button>
                 ))}
               </div>

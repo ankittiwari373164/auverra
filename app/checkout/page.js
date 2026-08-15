@@ -6,12 +6,12 @@ import { Footer } from '@/components/footer'
 import { useApp } from '@/app/providers'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { MapPin, QrCode, CheckCircle2, ArrowLeft, Upload, Loader2, MessageCircle } from 'lucide-react'
+import { QrCode, CheckCircle2, ArrowLeft, Upload, Loader2, MessageCircle } from 'lucide-react'
 
-// ⚠️ Replace with your real UPI ID before going live — this is what the QR code
-// and payment link actually pay into.
+// ⚠️ Replace with your real UPI ID before going live — this is what the QR
+// code and payment link actually pay into. Customers pay the FULL order
+// total here upfront; there is no cash-on-delivery option.
 const UPI_ID = 'auverrawatches@upi'
-const COD_CONFIRMATION_FEE = 150
 const WHATSAPP_NUMBER = '912249001897'
 
 const inputCls = "w-full bg-obsidian-700 border border-gold/20 px-3 py-2 text-sm outline-none focus:border-gold text-platinum-light"
@@ -44,7 +44,7 @@ function CheckoutInner() {
   const [placedOrder, setPlacedOrder] = useState(null)
 
   const subtotal = cart?.reduce((s, i) => s + i.price * i.quantity, 0) || 0
-  const total = subtotal - discount
+  const total = Math.max(0, subtotal - discount)
 
   useEffect(() => {
     if (!userLoading && !user) router.push('/login?redirect=/checkout')
@@ -88,7 +88,8 @@ function CheckoutInner() {
     setStep('payment')
   }
 
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=Auverra%20Watches&am=${COD_CONFIRMATION_FEE}&cu=INR&tn=COD%20Confirmation`
+  // Pay the full order total via UPI — not a fixed confirmation fee.
+  const upiLink = `upi://pay?pa=${UPI_ID}&pn=Auverra%20Watches&am=${total}&cu=INR&tn=Order%20Payment`
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiLink)}`
 
   const handleScreenshot = async (e) => {
@@ -109,10 +110,10 @@ function CheckoutInner() {
     if (!utr || utr.trim().length < 6) { toast.error('Please enter the UTR / Transaction Reference ID after paying'); return }
     if (!screenshotPath) { toast.error('Please upload a screenshot of your payment'); return }
     setPlacing(true)
-    const shippingInfo = { ...getShippingInfo(), codConfirmationUtr: utr.trim(), codConfirmationFee: COD_CONFIRMATION_FEE, codPaymentScreenshotPath: screenshotPath }
+    const shippingInfo = { ...getShippingInfo(), upiUtr: utr.trim(), upiPaymentScreenshotPath: screenshotPath }
     const res = await fetch('/api/orders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart, shipping: shippingInfo, subtotal, shippingCost: 0, tax: 0, total, paymentMethod: 'cod', couponCode, discount }),
+      body: JSON.stringify({ items: cart, shipping: shippingInfo, subtotal, shippingCost: 0, tax: 0, total, paymentMethod: 'upi', couponCode, discount }),
     })
     const data = await res.json()
     setPlacing(false)
@@ -121,7 +122,7 @@ function CheckoutInner() {
   }
 
   const whatsappOrderMessage = placedOrder ? encodeURIComponent(
-    `Hi Auverra Watches! I've placed an order and paid the ₹${COD_CONFIRMATION_FEE} COD confirmation fee.\n\nOrder ID: ${placedOrder.orderId}\nItems: ${(cart || []).map(i => `${i.name} x${i.quantity}`).join(', ')}\nTotal: ₹${total.toLocaleString('en-IN')}\nUTR: ${utr}\n\nPlease confirm and dispatch my order.`
+    `Hi Auverra Watches! I've placed an order and paid ₹${total.toLocaleString('en-IN')} via UPI.\n\nOrder ID: ${placedOrder.orderId}\nItems: ${(cart || []).map(i => `${i.name} x${i.quantity}`).join(', ')}\nTotal Paid: ₹${total.toLocaleString('en-IN')}\nUTR: ${utr}\n\nI've also uploaded my payment screenshot on the site — please verify and confirm my order. Attaching the screenshot here too:`
   ) : ''
 
   return (
@@ -131,7 +132,7 @@ function CheckoutInner() {
         <div className="container-lux max-w-3xl mx-auto">
           <div className="mb-10">
             <div className="text-[10px] uppercase tracking-[0.4em] text-gold mb-3">Checkout</div>
-            <h1 className="text-4xl md:text-5xl font-serif text-gradient-gold">{step === 'address' ? 'Delivery Address' : step === 'payment' ? 'Confirm Your Order' : 'Order Placed'}</h1>
+            <h1 className="text-4xl md:text-5xl font-serif text-gradient-gold">{step === 'address' ? 'Delivery Address' : step === 'payment' ? 'Pay via UPI' : 'Order Placed'}</h1>
           </div>
 
           {step === 'address' && (
@@ -176,8 +177,9 @@ function CheckoutInner() {
               <button onClick={() => setStep('address')} className="inline-flex items-center gap-2 text-sm text-platinum-light/60 hover:text-gold"><ArrowLeft className="w-4 h-4" /> Back to address</button>
 
               <div className="glass border border-gold/20 p-8 rounded-sm text-center">
-                <div className="inline-flex items-center gap-2 text-gold text-xs uppercase tracking-widest mb-4"><QrCode className="w-4 h-4" /> Cash on Delivery — Order Confirmation</div>
-                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-6">To confirm your COD order, pay a confirmation charge of <span className="text-gold">₹{COD_CONFIRMATION_FEE}</span> by scanning the QR code below. The rest (₹{total.toLocaleString('en-IN')}) is paid in cash on delivery.</p>
+                <div className="inline-flex items-center gap-2 text-gold text-xs uppercase tracking-widest mb-4"><QrCode className="w-4 h-4" /> Pay via UPI</div>
+                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-2">Scan the QR code below to pay <span className="text-gold font-semibold">₹{total.toLocaleString('en-IN')}</span> — your full order total.</p>
+                <p className="text-xs text-platinum-light/40 max-w-md mx-auto mb-6">We manually verify every payment before dispatch, usually within a few hours.</p>
                 <img src={qrSrc} alt="UPI QR Code" className="mx-auto mb-4 border border-gold/20 rounded-sm" width={220} height={220} />
                 <div className="text-platinum-light/50 text-sm mb-6">{UPI_ID}</div>
 
@@ -202,7 +204,7 @@ function CheckoutInner() {
                         <input type="file" accept="image/*" className="hidden" onChange={handleScreenshot} disabled={uploadingScreenshot} />
                       </label>
                     )}
-                    <p className="text-[11px] text-platinum-light/40 mt-2">We'll manually verify your payment. Please ensure the amount has been deducted before confirming.</p>
+                    <p className="text-[11px] text-platinum-light/40 mt-2">Please ensure the amount has been deducted before confirming.</p>
                   </div>
                 </div>
               </div>
@@ -210,13 +212,12 @@ function CheckoutInner() {
               <div className="glass border border-gold/15 p-6 rounded-sm">
                 <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span></div>
                 {discount > 0 && <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Discount</span><span className="text-green-400">-₹{discount.toLocaleString('en-IN')}</span></div>}
-                <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Shipping</span><span className="text-green-400">FREE</span></div>
-                <div className="flex justify-between text-sm mb-4"><span className="text-platinum-light/60">COD Confirmation Fee</span><span>₹{COD_CONFIRMATION_FEE} (pay now via QR)</span></div>
-                <div className="flex justify-between pt-4 border-t border-gold/10"><span className="font-serif text-lg">Total (incl. COD fee, rest paid on delivery)</span><span className="font-serif text-xl text-gradient-gold">₹{(total + COD_CONFIRMATION_FEE).toLocaleString('en-IN')}</span></div>
+                <div className="flex justify-between text-sm mb-4"><span className="text-platinum-light/60">Shipping</span><span className="text-green-400">FREE</span></div>
+                <div className="flex justify-between pt-4 border-t border-gold/10"><span className="font-serif text-lg">Total to Pay</span><span className="font-serif text-xl text-gradient-gold">₹{total.toLocaleString('en-IN')}</span></div>
               </div>
 
               <button onClick={placeOrder} disabled={placing || uploadingScreenshot} className="btn-gold w-full inline-flex items-center justify-center gap-2 disabled:opacity-50">
-                <CheckCircle2 className="w-4 h-4" /> {placing ? 'Placing Order...' : "I've Paid — Confirm Order"}
+                <CheckCircle2 className="w-4 h-4" /> {placing ? 'Placing Order...' : "I've Paid — Submit Order"}
               </button>
             </div>
           )}
@@ -226,13 +227,13 @@ function CheckoutInner() {
               <div className="glass border border-gold/20 p-10 rounded-sm">
                 <CheckCircle2 className="w-14 h-14 text-green-400 mx-auto mb-4" />
                 <h2 className="font-serif text-2xl text-platinum-light mb-2">Order {placedOrder.orderId} Placed!</h2>
-                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-8">Your payment screenshot is submitted for verification. Please send us your order details on WhatsApp so we can confirm and dispatch it right away.</p>
+                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-8">Your payment screenshot is submitted for verification. Tap below to also send it to us directly on WhatsApp (attach the same screenshot there) so we can confirm and dispatch faster.</p>
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappOrderMessage}`}
                   target="_blank" rel="noopener noreferrer"
                   className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-bold py-4 px-8 rounded-sm inline-flex items-center justify-center gap-2 transition"
                 >
-                  <MessageCircle className="w-4 h-4" /> Confirm Your Order on WhatsApp
+                  <MessageCircle className="w-4 h-4" /> Send Payment Screenshot on WhatsApp
                 </a>
               </div>
               <a href="/account/orders" className="text-sm text-platinum-light/50 hover:text-gold inline-block">View my orders →</a>

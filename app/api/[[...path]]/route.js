@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { PRODUCTS, CATEGORIES, COLLECTIONS, TESTIMONIALS } from '@/lib/seed-data'
-import { sendEmail, orderConfirmedEmailHtml } from '@/lib/email'
+import { sendEmail, orderConfirmedEmailHtml, orderRejectedEmailHtml } from '@/lib/email'
 
 const ADMIN_EMAILS = ['admin@auverra.com']
 const db = supabaseAdmin // service role client — bypasses RLS, used for all server-side data access
@@ -19,6 +19,7 @@ function productToApi(row) {
     currency: row.currency, category: row.category, collection: row.collection, brand: row.brand,
     images: row.images || [], description: row.description, features: row.features || [],
     specs: row.specs || {}, variants: row.variants || {}, stock: row.stock,
+    videos: row.videos || [],
     rating: Number(row.rating), reviewCount: row.review_count,
     featured: row.featured, bestSeller: row.best_seller, newArrival: row.new_arrival,
     limitedEdition: row.limited_edition, badges: row.badges || [],
@@ -35,6 +36,7 @@ function productFromApi(body) {
   if (body.collection !== undefined) out.collection = body.collection
   if (body.brand !== undefined) out.brand = body.brand
   if (body.images !== undefined) out.images = body.images
+  if (body.videos !== undefined) out.videos = body.videos
   if (body.description !== undefined) out.description = body.description
   if (body.features !== undefined) out.features = body.features
   if (body.specs !== undefined) out.specs = body.specs
@@ -367,10 +369,10 @@ async function handle(request, { params }) {
       const { data } = await db.from('orders').select('*').order('created_at', { ascending: false })
       const items = await Promise.all((data || []).map(async (row) => {
         const api = orderToApi(row)
-        const path = api.shipping?.codPaymentScreenshotPath
+        const path = api.shipping?.upiPaymentScreenshotPath
         if (path) {
           const { data: signed } = await db.storage.from('payment-proofs').createSignedUrl(path, 3600)
-          if (signed?.signedUrl) api.shipping.codPaymentScreenshotUrl = signed.signedUrl
+          if (signed?.signedUrl) api.shipping.upiPaymentScreenshotUrl = signed.signedUrl
         }
         return api
       }))
@@ -386,17 +388,31 @@ async function handle(request, { params }) {
       if (body.paymentStatus) row.payment_status = body.paymentStatus
       await db.from('orders').update(row).eq('order_id', path[2])
 
-      // Approving a pending COD confirmation payment: bump the order to
-      // "confirmed" and email the customer, but only once (avoid duplicate
-      // emails if this endpoint is called again).
+      // Approving a submitted UPI payment: bump the order to "processing"
+      // and email the customer, but only once (avoid duplicate emails if
+      // this endpoint is called again).
       if (body.paymentStatus === 'verified' && existing && existing.payment_status !== 'verified' && existing.email) {
-        if (!body.status) await db.from('orders').update({ status: 'confirmed' }).eq('order_id', path[2])
+        if (!body.status) await db.from('orders').update({ status: 'processing' }).eq('order_id', path[2])
         const { data: fresh } = await db.from('orders').select('*').eq('order_id', path[2]).maybeSingle()
         if (fresh) {
           await sendEmail({
             to: fresh.email,
             subject: `Your Auverra Watches order ${fresh.order_id} is confirmed`,
             html: orderConfirmedEmailHtml(orderToApi(fresh)),
+          })
+        }
+      }
+
+      // Rejecting a payment: mark the order cancelled and let the customer
+      // know so they can re-submit or reach out, once per rejection.
+      if (body.paymentStatus === 'rejected' && existing && existing.payment_status !== 'rejected' && existing.email) {
+        if (!body.status) await db.from('orders').update({ status: 'cancelled' }).eq('order_id', path[2])
+        const { data: fresh } = await db.from('orders').select('*').eq('order_id', path[2]).maybeSingle()
+        if (fresh) {
+          await sendEmail({
+            to: fresh.email,
+            subject: `Action needed on your Auverra Watches order ${fresh.order_id}`,
+            html: orderRejectedEmailHtml(orderToApi(fresh)),
           })
         }
       }

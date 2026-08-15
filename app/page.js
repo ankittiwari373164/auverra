@@ -5,9 +5,27 @@ import { Navbar } from '@/components/navbar'
 import { Footer } from '@/components/footer'
 import { ProductCard } from '@/components/product-card'
 import { WhatsAppReviews } from '@/components/whatsapp-reviews'
+import { RakhiHome } from '@/components/rakhi-home'
 import { ArrowRight, Award, Sparkles, Shield, Truck, Star, ChevronRight, ChevronLeft } from 'lucide-react'
 
+// ⚠️ Set your actual Raksha Bandhan campaign window here (year-month-day).
+// While today's date falls inside this range, the homepage automatically
+// shows the Rakhi theme instead of the regular one — no manual swapping,
+// and it switches back on its own once the end date passes.
+const RAKHI_START = new Date('2026-08-15T00:00:00')
+const RAKHI_END = new Date('2026-08-30T23:59:59')
+
+function isRakhiSeason() {
+  const now = new Date()
+  return now >= RAKHI_START && now <= RAKHI_END
+}
+
 export default function HomePage() {
+  if (isRakhiSeason()) return <RakhiHome />
+  return <RegularHomePage />
+}
+
+function RegularHomePage() {
   const [featured, setFeatured] = useState([])
   const [bestSellers, setBestSellers] = useState([])
   const [newArrivals, setNewArrivals] = useState([])
