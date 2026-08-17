@@ -7,7 +7,7 @@ import { ProductCard } from '@/components/product-card'
 import { WhatsAppReviews } from '@/components/whatsapp-reviews'
 import { ArrowRight, Sparkles, Gift, Truck, Star, ChevronRight, ChevronLeft, MessageCircle, Heart } from 'lucide-react'
 
-const WHATSAPP_LINK = 'https://wa.me/912249001897?text=' + encodeURIComponent("Hi Auverra Watches! I'm interested in your Rakhi Special watch gifts for my sibling.")
+const WHATSAPP_LINK = 'https://wa.me/919769510661?text=' + encodeURIComponent("Hi Auverra Watches! I'm interested in your Rakhi Special watch gifts for my sibling.")
 const maroon = '#5c1420'
 const rakhiRed = '#8b1d2c'
 const gold = '#ffd88a'

@@ -33,7 +33,7 @@ export default function ContactPage() {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12">
             <div className="space-y-8">
               {[
-                { icon: MessageCircle, title: 'WhatsApp', body: 'Click to Message', sub: 'Fastest response, direct chat', href: 'https://wa.me/912249001897' },
+                { icon: MessageCircle, title: 'WhatsApp', body: 'Click to Message', sub: 'Fastest response, direct chat', href: 'https://wa.me/919769510661' },
                 { icon: Mail, title: 'Email', body: 'concierge@auverra.com', sub: 'Response within 24 hours' },
                 { icon: Phone, title: 'Telephone', body: '+91 22 4900 1897', sub: 'Mon-Sat, 10 AM - 8 PM IST' },
                 { icon: MapPin, title: 'Flagship Boutique', body: 'Musafir Khana, Mumbai 400001', sub: 'By appointment' },
@@ -69,7 +69,7 @@ export default function ContactPage() {
           <div className="mt-16 glass border border-gold/20 rounded-sm p-10 text-center">
             <h3 className="font-serif text-2xl md:text-3xl text-gradient-gold mb-3">Join Our WhatsApp Community</h3>
             <p className="text-platinum-light/60 max-w-lg mx-auto mb-6">Get instant updates on the latest stock, new arrivals, and exclusive offers. Tap below to join our WhatsApp community now.</p>
-            <a href="https://wa.me/912249001897" target="_blank" rel="noopener noreferrer" className="btn-gold inline-flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Join Now</a>
+            <a href="https://chat.whatsapp.com/LCzcmWbEi4tHFWaTnK9hkG" target="_blank" rel="noopener noreferrer" className="btn-gold inline-flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Join Now</a>
           </div>
         </div>
       </div>

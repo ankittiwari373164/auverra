@@ -6,9 +6,10 @@ import { Navbar } from '@/components/navbar'
 import { useApp } from '@/app/providers'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Mail, Settings, Bell, Search, Percent, FileText, CreditCard, Truck, Palette, Watch, Star, X, Pencil, Trash2, Plus, Upload, Loader2, MessageSquare, CheckCircle2, Image as ImageIcon } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, Users, DollarSign, Mail, Settings, Bell, Search, Percent, FileText, CreditCard, Truck, Palette, Watch, Star, X, Pencil, Trash2, Plus, Upload, Loader2, MessageSquare, CheckCircle2, Image as ImageIcon, Menu } from 'lucide-react'
 
 const GATEWAYS = [
+  { key: 'upi', name: 'UPI (Checkout QR Code)', desc: 'The UPI ID used to generate the payment QR code at checkout — this is what customers actually pay into.', fields: ['UPI ID'] },
   { key: 'razorpay', name: 'Razorpay', desc: 'India’s leading payment gateway. Supports UPI, cards, netbanking.', fields: ['Key ID', 'Key Secret', 'Webhook Secret'] },
   { key: 'stripe', name: 'Stripe', desc: 'International cards, wallets, and 135+ currencies.', fields: ['Publishable Key', 'Secret Key', 'Webhook Signing Secret'] },
   { key: 'paypal', name: 'PayPal', desc: 'Global PayPal & PayPal Credit.', fields: ['Client ID', 'Client Secret'] },
@@ -96,8 +97,49 @@ function ReviewsTab({ reviews, refreshAll }) {
   )
 }
 
+function AdminLogin({ onSuccess }) {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const res = await fetch('/api/admin/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) })
+    setLoading(false)
+    if (res.ok) onSuccess()
+    else { const d = await res.json().catch(() => ({})); setError(d.error || 'Login failed') }
+  }
+
+  return (
+    <div className="min-h-screen bg-obsidian flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <img src="/logo.svg" alt="Auverra" className="w-12 h-12 mx-auto mb-4" />
+          <h1 className="text-2xl font-serif text-gradient-gold">Admin Login</h1>
+          <p className="text-xs text-platinum-light/50 mt-2">Restricted access</p>
+        </div>
+        <form onSubmit={submit} className="glass border border-gold/15 p-8 rounded-sm space-y-4">
+          <div>
+            <label className={labelCls}>Username</label>
+            <input required autoFocus value={username} onChange={e => setUsername(e.target.value)} className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Password</label>
+            <input required type="password" value={password} onChange={e => setPassword(e.target.value)} className={inputCls} />
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <button disabled={loading} className="btn-gold w-full disabled:opacity-50">{loading ? 'Signing in...' : 'Sign In'}</button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function AdminPage() {
-  const { user, loading, setUser } = useApp() || {}
+  const [authed, setAuthed] = useState(null) // null = checking, false = show login, true = show panel
   const [stats, setStats] = useState(null)
   const [products, setProducts] = useState([])
   const [orders, setOrders] = useState([])
@@ -109,14 +151,11 @@ export default function AdminPage() {
   const [productModal, setProductModal] = useState(null) // null | {} | product
   const [couponModal, setCouponModal] = useState(null)
   const [postModal, setPostModal] = useState(null)
-  const router = useRouter()
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
   useEffect(() => {
-    if (!loading && (!user || user.role !== 'admin')) {
-      if (!user) router.push('/login?redirect=/admin')
-      else router.push('/')
-    }
-  }, [user, loading])
+    fetch('/api/admin/me').then(r => r.json()).then(d => setAuthed(!!d.isAdmin))
+  }, [])
 
   const refreshAll = () => {
     fetch('/api/admin/stats').then(r => r.json()).then(setStats)
@@ -128,9 +167,15 @@ export default function AdminPage() {
     fetch('/api/admin/whatsapp-reviews').then(r => r.json()).then(d => setReviews(d.items || []))
   }
 
-  useEffect(() => { if (user?.role === 'admin') refreshAll() }, [user])
+  useEffect(() => { if (authed) refreshAll() }, [authed])
 
-  if (loading || !user || user.role !== 'admin') return <div className="min-h-screen bg-obsidian flex items-center justify-center"><div className="text-gold">Verifying access...</div></div>
+  const logoutAdmin = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' })
+    setAuthed(false)
+  }
+
+  if (authed === null) return <div className="min-h-screen bg-obsidian flex items-center justify-center"><div className="text-gold">Verifying access...</div></div>
+  if (authed === false) return <AdminLogin onSuccess={() => setAuthed(true)} />
 
   const nav = [
     { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -217,17 +262,21 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-obsidian text-platinum-light flex">
-      <aside className="w-64 bg-obsidian-900 border-r border-gold/10 min-h-screen flex-shrink-0 hidden lg:block">
-        <div className="p-6 border-b border-gold/10 flex items-center gap-3">
-          <img src="/logo.svg" alt="Auverra" className="w-8 h-8" />
-          <div>
-            <Link href="/" className="text-lg font-serif font-bold tracking-[0.15em] text-gradient-gold">AUVERRA</Link>
-            <div className="text-[9px] uppercase tracking-[0.3em] text-platinum-light/40">Admin Panel</div>
+      {mobileNavOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden" onClick={() => setMobileNavOpen(false)} />}
+      <aside className={`w-64 bg-obsidian-900 border-r border-gold/10 min-h-screen flex-shrink-0 fixed lg:static top-0 left-0 z-50 transition-transform duration-300 lg:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-6 border-b border-gold/10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <img src="/logo.svg" alt="Auverra" className="w-8 h-8" />
+            <div>
+              <Link href="/" className="text-lg font-serif font-bold tracking-[0.15em] text-gradient-gold">AUVERRA</Link>
+              <div className="text-[9px] uppercase tracking-[0.3em] text-platinum-light/40">Admin Panel</div>
+            </div>
           </div>
+          <button onClick={() => setMobileNavOpen(false)} className="lg:hidden text-platinum-light/60"><X className="w-5 h-5" /></button>
         </div>
         <nav className="p-3">
           {nav.map(item => (
-            <button key={item.key} onClick={() => setTab(item.key)} className={`w-full flex items-center gap-3 px-4 py-3 mb-1 text-sm transition rounded-sm ${tab === item.key ? 'bg-gold/10 text-gold border-l-2 border-gold' : 'text-platinum-light/70 hover:bg-obsidian-700 hover:text-platinum-light'}`}>
+            <button key={item.key} onClick={() => { setTab(item.key); setMobileNavOpen(false) }} className={`w-full flex items-center gap-3 px-4 py-3 mb-1 text-sm transition rounded-sm ${tab === item.key ? 'bg-gold/10 text-gold border-l-2 border-gold' : 'text-platinum-light/70 hover:bg-gold/5 hover:text-gold'}`}>
               <item.icon className="w-4 h-4" />{item.label}
             </button>
           ))}
@@ -236,11 +285,17 @@ export default function AdminPage() {
 
       <div className="flex-1 min-w-0">
         <header className="border-b border-gold/10 bg-obsidian-900/50 backdrop-blur px-8 py-5 flex items-center justify-between sticky top-0 z-40">
-          <div>
-            <h1 className="text-2xl font-serif text-gradient-gold capitalize">{tab}</h1>
-            <div className="text-xs text-platinum-light/50 mt-1">Welcome back, {user.name}</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setMobileNavOpen(true)} className="lg:hidden text-gold p-2 -ml-2"><Menu className="w-5 h-5" /></button>
+            <div>
+              <h1 className="text-2xl font-serif text-gradient-gold capitalize">{tab}</h1>
+              <div className="text-xs text-platinum-light/50 mt-1">Admin Panel</div>
+            </div>
           </div>
-          <Link href="/" className="text-xs uppercase tracking-widest text-gold hover:underline">View Store</Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-xs uppercase tracking-widest text-gold hover:underline">View Store</Link>
+            <button onClick={logoutAdmin} className="text-xs uppercase tracking-widest text-platinum-light/50 hover:text-red-400 transition">Logout</button>
+          </div>
         </header>
 
         <main className="p-8">
@@ -534,7 +589,7 @@ function GatewayRow({ pg, saved, onSave }) {
         {pg.fields.map(f => (
           <div key={f}>
             <label className={labelCls}>{f}</label>
-            <input type="password" value={fields[f] || ''} onChange={e => setFields({ ...fields, [f]: e.target.value })} placeholder={`Enter ${f}`} className={inputCls} />
+            <input type={f === 'UPI ID' ? 'text' : 'password'} value={fields[f] || ''} onChange={e => setFields({ ...fields, [f]: e.target.value })} placeholder={f === 'UPI ID' ? 'e.g. auverrawatches@upi' : `Enter ${f}`} className={inputCls} />
           </div>
         ))}
         {pg.fields.length > 0 && (
@@ -665,7 +720,7 @@ function ProductModal({ product, onClose, onSave }) {
         <div className="grid grid-cols-2 gap-4">
           <div><label className={labelCls}>Category</label>
             <select value={form.category} onChange={e => set('category', e.target.value)} className={inputCls}>
-              {['chronograph', 'dress', 'diver', 'tourbillon', 'gmt', 'ladies'].map(c => <option key={c} value={c}>{c}</option>)}
+              {['quartz', 'automatic', 'digital', 'chronograph', 'ladies'].map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div><label className={labelCls}>Collection</label>

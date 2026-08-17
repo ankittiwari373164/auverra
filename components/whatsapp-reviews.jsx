@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 
-const WHATSAPP_JOIN_LINK = 'https://wa.me/912249001897?text=' + encodeURIComponent("Hi Auverra Watches! I'd like to join your WhatsApp community for updates on new arrivals and offers.")
+const WHATSAPP_JOIN_LINK = 'https://chat.whatsapp.com/LCzcmWbEi4tHFWaTnK9hkG'
 
 export function WhatsAppReviews() {
   const [reviews, setReviews] = useState([])

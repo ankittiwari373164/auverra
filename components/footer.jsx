@@ -2,9 +2,9 @@
 import Link from 'next/link'
 import { Instagram, Twitter, Facebook, Youtube, MessageCircle } from 'lucide-react'
 
-const WHATSAPP_NUMBER = '912249001897'
+const WHATSAPP_NUMBER = '919769510661'
 const WHATSAPP_MESSAGE = "Hi Auverra Watches! I'd like to join your WhatsApp community for updates on new arrivals and offers."
-const WHATSAPP_JOIN_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`
+const WHATSAPP_JOIN_LINK = 'https://chat.whatsapp.com/LCzcmWbEi4tHFWaTnK9hkG'
 
 export function Footer() {
   return (
@@ -24,7 +24,7 @@ export function Footer() {
               <img src="/logo.png" alt="Auverra Watches" className="w-14 h-14" />
               <div className="text-2xl font-serif font-bold tracking-[0.2em] text-gradient-gold"></div>
             </div>
-            <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry. Since 1897.</p>
+            <p className="text-platinum-light/50 text-sm leading-relaxed">Handcrafted luxury timepieces for those who appreciate exceptional artistry.</p>
             <div className="flex gap-4 mt-6">
               {[Instagram, Twitter, Facebook, Youtube].map((Icon, i) => (
                 <a key={i} href="#" className="w-10 h-10 border border-gold/20 flex items-center justify-center hover:bg-gold hover:text-obsidian transition-all duration-300 hover:-translate-y-1"><Icon className="w-4 h-4" /></a>
@@ -34,10 +34,10 @@ export function Footer() {
           <div>
             <h4 className="font-serif text-gold mb-4 text-sm uppercase tracking-[0.2em]">Collections</h4>
             <ul className="space-y-3 text-sm text-platinum-light/60">
+              <li><Link href="/shop?category=quartz" className="hover:text-gold transition">Quartz</Link></li>
+              <li><Link href="/shop?category=automatic" className="hover:text-gold transition">Automatic</Link></li>
+              <li><Link href="/shop?category=digital" className="hover:text-gold transition">Digital</Link></li>
               <li><Link href="/shop?category=chronograph" className="hover:text-gold transition">Chronographs</Link></li>
-              <li><Link href="/shop?category=dress" className="hover:text-gold transition">Dress Watches</Link></li>
-              <li><Link href="/shop?category=diver" className="hover:text-gold transition">Diver Watches</Link></li>
-              <li><Link href="/shop?category=tourbillon" className="hover:text-gold transition">Tourbillons</Link></li>
               <li><Link href="/shop?category=ladies" className="hover:text-gold transition">Ladies Collection</Link></li>
             </ul>
           </div>

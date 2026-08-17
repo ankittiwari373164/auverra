@@ -8,11 +8,9 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { QrCode, CheckCircle2, ArrowLeft, Upload, Loader2, MessageCircle } from 'lucide-react'
 
-// ⚠️ Replace with your real UPI ID before going live — this is what the QR
-// code and payment link actually pay into. Customers pay the FULL order
-// total here upfront; there is no cash-on-delivery option.
-const UPI_ID = 'auverrawatches@upi'
-const WHATSAPP_NUMBER = '912249001897'
+const COD_ADVANCE = 150
+const WHATSAPP_NUMBER = '919769510661'
+const FALLBACK_UPI_ID = 'auverrawatches@upi' // used only if no UPI ID is set in Admin → Payments
 
 const inputCls = "w-full bg-obsidian-700 border border-gold/20 px-3 py-2 text-sm outline-none focus:border-gold text-platinum-light"
 const labelCls = "text-xs uppercase tracking-widest text-gold mb-1 block"
@@ -36,6 +34,8 @@ function CheckoutInner() {
   const [addresses, setAddresses] = useState([])
   const [selectedAddr, setSelectedAddr] = useState(null)
   const [form, setForm] = useState({ fullName: '', phone: '', line1: '', line2: '', city: '', state: '', postalCode: '', country: 'India' })
+  const [paymentMethod, setPaymentMethod] = useState('upi') // 'upi' (pay full now) | 'cod' (₹150 advance, rest on delivery)
+  const [upiId, setUpiId] = useState(FALLBACK_UPI_ID)
   const [utr, setUtr] = useState('')
   const [screenshotPath, setScreenshotPath] = useState(null)
   const [screenshotPreview, setScreenshotPreview] = useState(null)
@@ -45,6 +45,7 @@ function CheckoutInner() {
 
   const subtotal = cart?.reduce((s, i) => s + i.price * i.quantity, 0) || 0
   const total = Math.max(0, subtotal - discount)
+  const amountToPayNow = paymentMethod === 'cod' ? Math.min(COD_ADVANCE, total) : total
 
   useEffect(() => {
     if (!userLoading && !user) router.push('/login?redirect=/checkout')
@@ -58,6 +59,10 @@ function CheckoutInner() {
       if (def) setSelectedAddr(def._id)
     })
   }, [user])
+
+  useEffect(() => {
+    fetch('/api/payment-upi').then(r => r.json()).then(d => { if (d.upiId) setUpiId(d.upiId) })
+  }, [])
 
   if (!cart || cart.length === 0) {
     return (
@@ -88,8 +93,7 @@ function CheckoutInner() {
     setStep('payment')
   }
 
-  // Pay the full order total via UPI — not a fixed confirmation fee.
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=Auverra%20Watches&am=${total}&cu=INR&tn=Order%20Payment`
+  const upiLink = `upi://pay?pa=${upiId}&pn=Auverra%20Watches&am=${amountToPayNow}&cu=INR&tn=${paymentMethod === 'cod' ? 'COD%20Advance' : 'Order%20Payment'}`
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiLink)}`
 
   const handleScreenshot = async (e) => {
@@ -110,10 +114,15 @@ function CheckoutInner() {
     if (!utr || utr.trim().length < 6) { toast.error('Please enter the UTR / Transaction Reference ID after paying'); return }
     if (!screenshotPath) { toast.error('Please upload a screenshot of your payment'); return }
     setPlacing(true)
-    const shippingInfo = { ...getShippingInfo(), upiUtr: utr.trim(), upiPaymentScreenshotPath: screenshotPath }
+    const shippingInfo = {
+      ...getShippingInfo(),
+      upiUtr: utr.trim(),
+      upiPaymentScreenshotPath: screenshotPath,
+      ...(paymentMethod === 'cod' ? { codAdvancePaid: amountToPayNow, codRemainingOnDelivery: total - amountToPayNow } : {}),
+    }
     const res = await fetch('/api/orders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart, shipping: shippingInfo, subtotal, shippingCost: 0, tax: 0, total, paymentMethod: 'upi', couponCode, discount }),
+      body: JSON.stringify({ items: cart, shipping: shippingInfo, subtotal, shippingCost: 0, tax: 0, total, paymentMethod, couponCode, discount }),
     })
     const data = await res.json()
     setPlacing(false)
@@ -122,7 +131,9 @@ function CheckoutInner() {
   }
 
   const whatsappOrderMessage = placedOrder ? encodeURIComponent(
-    `Hi Auverra Watches! I've placed an order and paid ₹${total.toLocaleString('en-IN')} via UPI.\n\nOrder ID: ${placedOrder.orderId}\nItems: ${(cart || []).map(i => `${i.name} x${i.quantity}`).join(', ')}\nTotal Paid: ₹${total.toLocaleString('en-IN')}\nUTR: ${utr}\n\nI've also uploaded my payment screenshot on the site — please verify and confirm my order. Attaching the screenshot here too:`
+    paymentMethod === 'cod'
+      ? `Hi Auverra Watches! I've placed a COD order and paid the ₹${amountToPayNow.toLocaleString('en-IN')} advance via UPI.\n\nOrder ID: ${placedOrder.orderId}\nItems: ${(cart || []).map(i => `${i.name} x${i.quantity}`).join(', ')}\nOrder Total: ₹${total.toLocaleString('en-IN')}\nAdvance Paid: ₹${amountToPayNow.toLocaleString('en-IN')}\nRemaining on Delivery: ₹${(total - amountToPayNow).toLocaleString('en-IN')}\nUTR: ${utr}\n\nI've also uploaded my payment screenshot on the site — please verify and confirm my order. Attaching the screenshot here too:`
+      : `Hi Auverra Watches! I've placed an order and paid ₹${total.toLocaleString('en-IN')} via UPI.\n\nOrder ID: ${placedOrder.orderId}\nItems: ${(cart || []).map(i => `${i.name} x${i.quantity}`).join(', ')}\nTotal Paid: ₹${total.toLocaleString('en-IN')}\nUTR: ${utr}\n\nI've also uploaded my payment screenshot on the site — please verify and confirm my order. Attaching the screenshot here too:`
   ) : ''
 
   return (
@@ -132,7 +143,7 @@ function CheckoutInner() {
         <div className="container-lux max-w-3xl mx-auto">
           <div className="mb-10">
             <div className="text-[10px] uppercase tracking-[0.4em] text-gold mb-3">Checkout</div>
-            <h1 className="text-4xl md:text-5xl font-serif text-gradient-gold">{step === 'address' ? 'Delivery Address' : step === 'payment' ? 'Pay via UPI' : 'Order Placed'}</h1>
+            <h1 className="text-4xl md:text-5xl font-serif text-gradient-gold">{step === 'address' ? 'Delivery Address' : step === 'payment' ? 'Payment' : 'Order Placed'}</h1>
           </div>
 
           {step === 'address' && (
@@ -176,12 +187,27 @@ function CheckoutInner() {
             <div className="space-y-6">
               <button onClick={() => setStep('address')} className="inline-flex items-center gap-2 text-sm text-platinum-light/60 hover:text-gold"><ArrowLeft className="w-4 h-4" /> Back to address</button>
 
+              {/* Payment method choice */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button onClick={() => setPaymentMethod('upi')} className={`text-left p-4 border rounded-sm transition ${paymentMethod === 'upi' ? 'border-gold bg-gold/5' : 'border-gold/15 hover:border-gold/30'}`}>
+                  <div className="text-sm font-semibold text-platinum-light mb-1">Pay Full Amount via UPI</div>
+                  <div className="text-xs text-platinum-light/50">Pay ₹{total.toLocaleString('en-IN')} now — nothing on delivery.</div>
+                </button>
+                <button onClick={() => setPaymentMethod('cod')} className={`text-left p-4 border rounded-sm transition ${paymentMethod === 'cod' ? 'border-gold bg-gold/5' : 'border-gold/15 hover:border-gold/30'}`}>
+                  <div className="text-sm font-semibold text-platinum-light mb-1">Cash on Delivery</div>
+                  <div className="text-xs text-platinum-light/50">Pay ₹{Math.min(COD_ADVANCE, total).toLocaleString('en-IN')} advance now, rest (₹{(total - Math.min(COD_ADVANCE, total)).toLocaleString('en-IN')}) in cash on delivery.</div>
+                </button>
+              </div>
+
               <div className="glass border border-gold/20 p-8 rounded-sm text-center">
-                <div className="inline-flex items-center gap-2 text-gold text-xs uppercase tracking-widest mb-4"><QrCode className="w-4 h-4" /> Pay via UPI</div>
-                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-2">Scan the QR code below to pay <span className="text-gold font-semibold">₹{total.toLocaleString('en-IN')}</span> — your full order total.</p>
+                <div className="inline-flex items-center gap-2 text-gold text-xs uppercase tracking-widest mb-4"><QrCode className="w-4 h-4" /> {paymentMethod === 'cod' ? 'Pay COD Advance via UPI' : 'Pay via UPI'}</div>
+                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-2">
+                  Scan the QR code below to pay <span className="text-gold font-semibold">₹{amountToPayNow.toLocaleString('en-IN')}</span>
+                  {paymentMethod === 'cod' ? ' — your COD advance.' : ' — your full order total.'}
+                </p>
                 <p className="text-xs text-platinum-light/40 max-w-md mx-auto mb-6">We manually verify every payment before dispatch, usually within a few hours.</p>
                 <img src={qrSrc} alt="UPI QR Code" className="mx-auto mb-4 border border-gold/20 rounded-sm" width={220} height={220} />
-                <div className="text-platinum-light/50 text-sm mb-6">{UPI_ID}</div>
+                <div className="text-platinum-light/50 text-sm mb-6">{upiId}</div>
 
                 <div className="max-w-sm mx-auto text-left space-y-4">
                   <div>
@@ -213,7 +239,13 @@ function CheckoutInner() {
                 <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Subtotal</span><span>₹{subtotal.toLocaleString('en-IN')}</span></div>
                 {discount > 0 && <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Discount</span><span className="text-green-400">-₹{discount.toLocaleString('en-IN')}</span></div>}
                 <div className="flex justify-between text-sm mb-4"><span className="text-platinum-light/60">Shipping</span><span className="text-green-400">FREE</span></div>
-                <div className="flex justify-between pt-4 border-t border-gold/10"><span className="font-serif text-lg">Total to Pay</span><span className="font-serif text-xl text-gradient-gold">₹{total.toLocaleString('en-IN')}</span></div>
+                {paymentMethod === 'cod' && (
+                  <>
+                    <div className="flex justify-between text-sm mb-2"><span className="text-platinum-light/60">Pay Now (Advance)</span><span>₹{amountToPayNow.toLocaleString('en-IN')}</span></div>
+                    <div className="flex justify-between text-sm mb-4"><span className="text-platinum-light/60">Pay on Delivery</span><span>₹{(total - amountToPayNow).toLocaleString('en-IN')}</span></div>
+                  </>
+                )}
+                <div className="flex justify-between pt-4 border-t border-gold/10"><span className="font-serif text-lg">{paymentMethod === 'cod' ? 'Order Total' : 'Total to Pay'}</span><span className="font-serif text-xl text-gradient-gold">₹{total.toLocaleString('en-IN')}</span></div>
               </div>
 
               <button onClick={placeOrder} disabled={placing || uploadingScreenshot} className="btn-gold w-full inline-flex items-center justify-center gap-2 disabled:opacity-50">
@@ -227,7 +259,11 @@ function CheckoutInner() {
               <div className="glass border border-gold/20 p-10 rounded-sm">
                 <CheckCircle2 className="w-14 h-14 text-green-400 mx-auto mb-4" />
                 <h2 className="font-serif text-2xl text-platinum-light mb-2">Order {placedOrder.orderId} Placed!</h2>
-                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-8">Your payment screenshot is submitted for verification. Tap below to also send it to us directly on WhatsApp (attach the same screenshot there) so we can confirm and dispatch faster.</p>
+                <p className="text-sm text-platinum-light/60 max-w-md mx-auto mb-8">
+                  {paymentMethod === 'cod'
+                    ? `Your ₹${amountToPayNow.toLocaleString('en-IN')} advance screenshot is submitted for verification. You'll pay the remaining ₹${(total - amountToPayNow).toLocaleString('en-IN')} in cash on delivery.`
+                    : 'Your payment screenshot is submitted for verification.'} Tap below to also send it to us directly on WhatsApp (attach the same screenshot there) so we can confirm and dispatch faster.
+                </p>
                 <a
                   href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappOrderMessage}`}
                   target="_blank" rel="noopener noreferrer"

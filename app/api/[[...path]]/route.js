@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { PRODUCTS, CATEGORIES, COLLECTIONS, TESTIMONIALS } from '@/lib/seed-data'
 import { sendEmail, orderConfirmedEmailHtml, orderRejectedEmailHtml } from '@/lib/email'
+import { createAdminToken, verifyAdminToken, checkAdminCredentials, ADMIN_COOKIE_NAME } from '@/lib/adminAuth'
 
 const ADMIN_EMAILS = ['admin@auverra.com']
 const db = supabaseAdmin // service role client — bypasses RLS, used for all server-side data access
@@ -102,11 +103,11 @@ async function getUser() {
   } catch { return null }
 }
 
-async function isAdmin(user) {
-  if (!user) return false
-  if (ADMIN_EMAILS.includes(user.email) || user.user_metadata?.role === 'admin') return true
-  const { data } = await db.from('profiles').select('role').eq('id', user.id).maybeSingle()
-  return data?.role === 'admin'
+// Admin gate for the admin panel — checks the env-credential session cookie
+// set by /api/admin/login. Fully independent of Supabase/customer accounts.
+async function isAdminAuthed(request) {
+  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value
+  return verifyAdminToken(token)
 }
 
 async function handle(request, { params }) {
@@ -124,7 +125,27 @@ async function handle(request, { params }) {
     if (route === 'me' && method === 'GET') {
       const user = await getUser()
       if (!user) return NextResponse.json({ user: null })
-      return NextResponse.json({ user: { id: user.id, email: user.email, name: user.user_metadata?.name || user.email?.split('@')[0], role: (await isAdmin(user)) ? 'admin' : 'user' } })
+      return NextResponse.json({ user: { id: user.id, email: user.email, name: user.user_metadata?.name || user.email?.split('@')[0], role: (await isAdminAuthed(request)) ? 'admin' : 'user' } })
+    }
+
+    // Admin auth — env credentials, not Supabase. Separate from customer login.
+    if (route === 'admin/login' && method === 'POST') {
+      const { username, password } = await request.json()
+      if (!checkAdminCredentials(username, password)) {
+        return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 })
+      }
+      const token = createAdminToken()
+      const res = NextResponse.json({ ok: true })
+      res.cookies.set(ADMIN_COOKIE_NAME, token, { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 7 })
+      return res
+    }
+    if (route === 'admin/logout' && method === 'POST') {
+      const res = NextResponse.json({ ok: true })
+      res.cookies.set(ADMIN_COOKIE_NAME, '', { httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 0 })
+      return res
+    }
+    if (route === 'admin/me' && method === 'GET') {
+      return NextResponse.json({ isAdmin: await isAdminAuthed(request) })
     }
 
     // Auth
@@ -313,7 +334,7 @@ async function handle(request, { params }) {
     // Admin: stats
     if (route === 'admin/stats' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const [{ count: productCount }, { count: orderCount }, { count: userCount }, { count: newsletterCount }, { data: orders }] = await Promise.all([
         db.from('products').select('*', { count: 'exact', head: true }),
         db.from('orders').select('*', { count: 'exact', head: true }),
@@ -328,13 +349,13 @@ async function handle(request, { params }) {
 
     if (route === 'admin/products' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('products').select('*')
       return NextResponse.json({ items: (data || []).map(productToApi) })
     }
     if (route === 'admin/products' && method === 'POST') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       if (!body.slug || !body.name) return NextResponse.json({ error: 'slug and name required' }, { status: 400 })
       const { data: existing } = await db.from('products').select('slug').eq('slug', body.slug).maybeSingle()
@@ -347,7 +368,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'products' && path[2] && method === 'PUT') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       const row = productFromApi(body)
       delete row.slug
@@ -357,7 +378,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'products' && path[2] && method === 'DELETE') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       await db.from('products').delete().eq('slug', path[2])
       return NextResponse.json({ ok: true })
     }
@@ -365,7 +386,7 @@ async function handle(request, { params }) {
     // Admin: orders
     if (route === 'admin/orders' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('orders').select('*').order('created_at', { ascending: false })
       const items = await Promise.all((data || []).map(async (row) => {
         const api = orderToApi(row)
@@ -380,7 +401,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'orders' && path[2] && method === 'PUT') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       const { data: existing } = await db.from('orders').select('*').eq('order_id', path[2]).maybeSingle()
       const row = {}
@@ -434,13 +455,13 @@ async function handle(request, { params }) {
     // Admin: coupons CRUD
     if (route === 'admin/coupons' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('coupons').select('*').order('created_at', { ascending: false })
       return NextResponse.json({ items: (data || []).map(couponToApi) })
     }
     if (route === 'admin/coupons' && method === 'POST') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       if (!body.code || !body.value) return NextResponse.json({ error: 'code and value required' }, { status: 400 })
       const code = body.code.toUpperCase()
@@ -453,7 +474,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'coupons' && path[2] && method === 'PUT') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       const row = {}
       if (body.active !== undefined) row.active = body.active
@@ -465,7 +486,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'coupons' && path[2] && method === 'DELETE') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       await db.from('coupons').delete().eq('id', path[2])
       return NextResponse.json({ ok: true })
     }
@@ -484,13 +505,13 @@ async function handle(request, { params }) {
     // Admin: blog CRUD
     if (route === 'admin/blog' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('blog_posts').select('*').order('created_at', { ascending: false })
       return NextResponse.json({ items: (data || []).map(postToApi) })
     }
     if (route === 'admin/blog' && method === 'POST') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       if (!body.title) return NextResponse.json({ error: 'title required' }, { status: 400 })
       const slug = (body.slug || body.title).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
@@ -503,7 +524,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'blog' && path[2] && method === 'PUT') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       const row = {}
       if (body.title !== undefined) row.title = body.title
@@ -516,7 +537,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'blog' && path[2] && method === 'DELETE') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       await db.from('blog_posts').delete().eq('id', path[2])
       return NextResponse.json({ ok: true })
     }
@@ -524,7 +545,7 @@ async function handle(request, { params }) {
     // Admin: payment gateway settings
     if (route === 'admin/payments' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('payment_settings').select('*')
       const gateways = {}
       for (const row of data || []) gateways[row.gateway] = { enabled: row.enabled, mode: row.mode, fields: row.fields, updatedAt: row.updated_at }
@@ -532,13 +553,20 @@ async function handle(request, { params }) {
     }
     if (route === 'admin/payments' && method === 'POST') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json() // { gateway, enabled, mode, fields }
       await db.from('payment_settings').upsert({ gateway: body.gateway, enabled: !!body.enabled, mode: body.mode || 'test', fields: body.fields || {} })
       const { data } = await db.from('payment_settings').select('*')
       const gateways = {}
       for (const row of data || []) gateways[row.gateway] = { enabled: row.enabled, mode: row.mode, fields: row.fields }
       return NextResponse.json({ ok: true, gateways })
+    }
+
+    // Public: UPI ID for checkout QR code (safe to expose — it's just a
+    // payment address, unlike the rest of the payment_settings row).
+    if (route === 'payment-upi' && method === 'GET') {
+      const { data } = await db.from('payment_settings').select('fields').eq('gateway', 'upi').maybeSingle()
+      return NextResponse.json({ upiId: data?.fields?.['UPI ID'] || null })
     }
 
     // WhatsApp review screenshots — public
@@ -549,13 +577,13 @@ async function handle(request, { params }) {
     // WhatsApp review screenshots — admin CRUD
     if (route === 'admin/whatsapp-reviews' && method === 'GET') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const { data } = await db.from('whatsapp_reviews').select('*').order('sort_order', { ascending: true }).order('created_at', { ascending: false })
       return NextResponse.json({ items: (data || []).map(r => ({ _id: r.id, imageUrl: r.image_url, caption: r.caption, published: r.published, sortOrder: r.sort_order })) })
     }
     if (route === 'admin/whatsapp-reviews' && method === 'POST') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       if (!body.imageUrl) return NextResponse.json({ error: 'imageUrl required' }, { status: 400 })
       const { data, error } = await db.from('whatsapp_reviews').insert({ image_url: body.imageUrl, caption: body.caption || '', published: body.published !== false, sort_order: body.sortOrder || 0 }).select().single()
@@ -564,7 +592,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'whatsapp-reviews' && path[2] && method === 'PUT') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       const body = await request.json()
       const row = {}
       if (body.caption !== undefined) row.caption = body.caption
@@ -575,7 +603,7 @@ async function handle(request, { params }) {
     }
     if (path[0] === 'admin' && path[1] === 'whatsapp-reviews' && path[2] && method === 'DELETE') {
       const user = await getUser()
-      if (!(await isAdmin(user))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (!(await isAdminAuthed(request))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       await db.from('whatsapp_reviews').delete().eq('id', path[2])
       return NextResponse.json({ ok: true })
     }
