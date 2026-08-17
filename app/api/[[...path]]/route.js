@@ -17,7 +17,7 @@ function productToApi(row) {
   return {
     slug: row.slug, name: row.name, tagline: row.tagline,
     price: Number(row.price), compareAtPrice: row.compare_at_price != null ? Number(row.compare_at_price) : null,
-    currency: row.currency, category: row.category, collection: row.collection, brand: row.brand,
+    currency: row.currency, category: row.category, categories: row.categories?.length ? row.categories : (row.category ? [row.category] : []), collection: row.collection, brand: row.brand,
     images: row.images || [], description: row.description, features: row.features || [],
     specs: row.specs || {}, variants: row.variants || {}, stock: row.stock,
     videos: row.videos || [],
@@ -34,6 +34,10 @@ function productFromApi(body) {
   if (body.price !== undefined) out.price = Number(body.price)
   if (body.compareAtPrice !== undefined) out.compare_at_price = body.compareAtPrice ? Number(body.compareAtPrice) : null
   if (body.category !== undefined) out.category = body.category
+  if (body.categories !== undefined) {
+    out.categories = body.categories
+    if (body.categories.length) out.category = body.categories[0] // keep legacy column in sync
+  }
   if (body.collection !== undefined) out.collection = body.collection
   if (body.brand !== undefined) out.brand = body.brand
   if (body.images !== undefined) out.images = body.images
@@ -86,7 +90,7 @@ async function ensureSeeded() {
     await db.from('collections').upsert(COLLECTIONS.map(c => ({ id: c.id, name: c.name, slug: c.slug, tagline: c.tagline, image: c.image })))
     await db.from('products').upsert(PRODUCTS.map(p => ({
       slug: p.slug, name: p.name, tagline: p.tagline, price: p.price, compare_at_price: p.compareAtPrice,
-      currency: p.currency, category: p.category, collection: p.collection, brand: p.brand,
+      currency: p.currency, category: p.category, categories: p.categories || (p.category ? [p.category] : []), collection: p.collection, brand: p.brand,
       images: p.images, description: p.description, features: p.features, specs: p.specs, variants: p.variants,
       stock: p.stock, rating: p.rating, review_count: p.reviewCount, featured: p.featured, best_seller: p.bestSeller,
       new_arrival: p.newArrival, limited_edition: p.limitedEdition, badges: p.badges,
@@ -181,7 +185,7 @@ async function handle(request, { params }) {
       const maxPrice = parseInt(searchParams.get('maxPrice') || '99999999')
 
       let q = db.from('products').select('*').gte('price', minPrice).lte('price', maxPrice)
-      if (category) q = q.eq('category', category)
+      if (category) q = q.contains('categories', [category])
       if (collection) q = q.eq('collection', collection)
       if (brand && brand !== 'all') q = q.eq('brand', brand)
       if (search) q = q.or(`name.ilike.%${search}%,tagline.ilike.%${search}%,description.ilike.%${search}%`)
@@ -220,7 +224,7 @@ async function handle(request, { params }) {
       const slug = path[1]
       const { data: product } = await db.from('products').select('*').eq('slug', slug).maybeSingle()
       if (!product) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-      const { data: related } = await db.from('products').select('*').eq('category', product.category).neq('slug', slug).limit(4)
+      const { data: related } = await db.from('products').select('*').contains('categories', product.categories?.length ? [product.categories[0]] : [product.category]).neq('slug', slug).limit(4)
       return NextResponse.json({ product: productToApi(product), related: (related || []).map(productToApi) })
     }
 

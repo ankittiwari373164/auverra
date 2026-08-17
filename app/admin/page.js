@@ -396,7 +396,7 @@ export default function AdminPage() {
                   {products.map(p => (
                     <tr key={p.slug} className="border-b border-gold/5 hover:bg-obsidian-700/30">
                       <td className="p-4"><div className="flex items-center gap-3"><img src={p.images[0] + '?auto=format&fit=crop&w=100&q=80'} className="w-12 h-12 object-cover" /><div className="font-serif">{p.name}</div></div></td>
-                      <td className="p-4 hidden md:table-cell text-sm text-platinum-light/70 capitalize">{p.category}</td>
+                      <td className="p-4 hidden md:table-cell text-sm text-platinum-light/70 capitalize">{(p.categories?.length ? p.categories : [p.category]).join(', ')}</td>
                       <td className="p-4 text-sm text-gold">₹{p.price.toLocaleString('en-IN')}</td>
                       <td className="p-4 text-sm"><span className={p.stock < 5 ? 'text-rosegold' : 'text-green-400'}>{p.stock}</span></td>
                       <td className="p-4 hidden md:table-cell text-sm">★ {p.rating}</td>
@@ -609,7 +609,7 @@ function ProductModal({ product, onClose, onSave }) {
   const [form, setForm] = useState({
     slug: product.slug || '', name: product.name || '', tagline: product.tagline || '',
     price: product.price || '', compareAtPrice: product.compareAtPrice || '', stock: product.stock ?? '',
-    category: product.category || 'chronograph', collection: product.collection || 'heritage',
+    categories: product.categories?.length ? product.categories : (product.category ? [product.category] : ['chronograph']), collection: product.collection || 'heritage',
     description: product.description || '', images: product.images || [], videos: product.videos || [],
     featured: !!product.featured, bestSeller: !!product.bestSeller, newArrival: !!product.newArrival,
     features: product.features?.length ? product.features : [''],
@@ -691,6 +691,7 @@ function ProductModal({ product, onClose, onSave }) {
   const submit = (e) => {
     e.preventDefault()
     if (!form.images.length) return toast.error('Add at least one product image')
+    if (!form.categories.length) return toast.error('Select at least one category')
     const specs = {}
     form.specs.forEach(({ key, value }) => { if (key.trim()) specs[key.trim()] = value })
     const payload = {
@@ -718,10 +719,27 @@ function ProductModal({ product, onClose, onSave }) {
           <div><label className={labelCls}>Stock</label><input required type="number" value={form.stock} onChange={e => set('stock', e.target.value)} className={inputCls} /></div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <div><label className={labelCls}>Category</label>
-            <select value={form.category} onChange={e => set('category', e.target.value)} className={inputCls}>
-              {['quartz', 'automatic', 'digital', 'chronograph', 'ladies'].map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          <div>
+            <label className={labelCls}>Categories (select one or more)</label>
+            <div className="flex flex-wrap gap-3 bg-obsidian-700 border border-gold/20 px-3 py-2">
+              {[
+                { slug: 'quartz', label: 'Quartz' },
+                { slug: 'automatic', label: 'Automatic' },
+                { slug: 'digital', label: 'Digital' },
+                { slug: 'chronograph', label: 'Chronographs' },
+                { slug: 'ladies', label: 'Ladies Collection' },
+              ].map(c => (
+                <label key={c.slug} className="flex items-center gap-1.5 text-xs text-platinum-light cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.categories.includes(c.slug)}
+                    onChange={e => set('categories', e.target.checked ? [...form.categories, c.slug] : form.categories.filter(x => x !== c.slug))}
+                    className="accent-gold"
+                  />
+                  {c.label}
+                </label>
+              ))}
+            </div>
           </div>
           <div><label className={labelCls}>Collection</label>
             <select value={form.collection} onChange={e => set('collection', e.target.value)} className={inputCls}>

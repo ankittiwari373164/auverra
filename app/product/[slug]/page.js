@@ -121,7 +121,7 @@ export default function ProductDetailPage({ params }) {
 
             {/* Details */}
             <div className="lg:pt-4">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-gold mb-3">{product.category} • {product.collection}</div>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-gold mb-3">{(product.categories?.length ? product.categories : [product.category]).join(' • ')} • {product.collection}</div>
               <h1 className="text-4xl md:text-5xl font-serif text-gradient-gold mb-3">{product.name}</h1>
               <p className="text-lg italic text-platinum-light/70 mb-6">{product.tagline}</p>
 
@@ -182,7 +182,7 @@ export default function ProductDetailPage({ params }) {
                 <button onClick={() => toggleWishlist?.(product)} className={`w-14 h-14 border ${inWishlist ? 'bg-gold border-gold text-obsidian' : 'border-gold/40 text-gold hover:bg-gold/10'} flex items-center justify-center transition`}><Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} /></button>
               </div>
               <a
-                href={`https://wa.me/912249001897?text=${encodeURIComponent(`Hi Auverra Watches! I'm interested in the ${product.name}${activeColor ? ` (${activeColor.name})` : ''} — ₹${displayPrice.toLocaleString('en-IN')}. Is it available?`)}`}
+                href={`https://wa.me/919769510661?text=${encodeURIComponent(`Hi Auverra Watches! I'm interested in the ${product.name}${activeColor ? ` (${activeColor.name})` : ''} — ₹${displayPrice.toLocaleString('en-IN')}. Is it available?`)}`}
                 target="_blank" rel="noopener noreferrer"
                 className="mb-8 w-full bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-bold py-3.5 rounded-sm inline-flex items-center justify-center gap-2 transition"
               >
