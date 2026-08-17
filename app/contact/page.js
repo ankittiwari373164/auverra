@@ -35,7 +35,7 @@ export default function ContactPage() {
               {[
                 { icon: MessageCircle, title: 'WhatsApp', body: 'Click to Message', sub: 'Fastest response, direct chat', href: 'https://wa.me/919769510661' },
                 { icon: Mail, title: 'Email', body: 'concierge@auverra.com', sub: 'Response within 24 hours' },
-                { icon: Phone, title: 'Telephone', body: '+91 22 4900 1897', sub: 'Mon-Sat, 10 AM - 8 PM IST' },
+                { icon: Phone, title: 'Telephone', body: '+91 97695 10661', sub: 'Mon-Sat, 10 AM - 8 PM IST' },
                 { icon: MapPin, title: 'Flagship Boutique', body: 'Musafir Khana, Mumbai 400001', sub: 'By appointment' },
                 { icon: Clock, title: 'Concierge Hours', body: '10 AM – 8 PM, Mon–Sat', sub: 'Closed Sundays' },
               ].map((c, i) => {
