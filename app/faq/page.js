@@ -5,7 +5,7 @@ import { Footer } from '@/components/footer'
 import { Plus, Minus } from 'lucide-react'
 
 const FAQS = [
-  { q: 'Are Auverra watches authentic?', a: 'Every premium timepiece we sell is delivered with an authenticity certificate. Please get in touch with us via WhatsApp for full product details before placing your order.' },
+  { q: 'Are Auverra watches authentic?', a: 'Every premium timepiece we sell is the first copy — 100% original and authentic. All pieces are delivered with an authenticity certificate. Please get in touch with us via WhatsApp for full product details before placing your order.' },
   { q: 'What is your shipping and delivery policy?', a: 'We offer free insured delivery on all orders, with Cash on Delivery (COD) available for your convenience — a ₹150 COD charge applies to all COD orders. All orders are dispatched only after final confirmation.' },
   { q: 'Do you offer returns or exchanges?', a: 'We follow a strict No Refund Policy — exchange only, and only in cases of damage, defect, or a wrong item delivered. A clear, unedited unboxing video is mandatory for any exchange request, raised within 48 hours of delivery. See our full Exchange & Refund Policy for details.' },
   { q: 'How do I service my Auverra watch?', a: 'We recommend servicing every 4-5 years. Contact our concierge to arrange collection. All servicing is performed at our atelier by master watchmakers using original parts.' },
